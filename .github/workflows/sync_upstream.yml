@@ -1,0 +1,57 @@
+name: 🔄 Sync with upstream Dolphin
+
+# Keeps this fork's master branch on top of libretro/dolphin: when
+# upstream has new commits, the fork's own commits are rebased onto them
+# and force-pushed, which starts the Dolphin build workflows.
+# A rebase conflict fails this run and leaves the branch untouched.
+#
+# Pushes with the SYNC_TOKEN secret (a fine-grained token with Contents
+# and Workflows write on this repository): the built-in GITHUB_TOKEN may
+# not push changes to workflow files, and its pushes start no workflows.
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.repository == 'nobz226/dolphin'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+          token: ${{ secrets.SYNC_TOKEN }}
+
+      - name: Rebase onto upstream and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/libretro/dolphin.git
+          git fetch upstream master
+
+          if git merge-base --is-ancestor upstream/master HEAD; then
+            echo "Already on top of upstream $(git rev-parse --short upstream/master)."
+            exit 0
+          fi
+
+          old=$(git rev-parse HEAD)
+          if ! git rebase upstream/master; then
+            git status --short
+            git rebase --abort
+            echo "::error::Rebase onto upstream $(git rev-parse --short upstream/master) conflicts; master was left as it was."
+            exit 1
+          fi
+
+          git push --force-with-lease=master:$old origin HEAD:master
+          echo "master rebased onto upstream $(git rev-parse --short upstream/master)."
