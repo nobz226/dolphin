@@ -660,6 +660,10 @@ bool retro_load_game(const struct retro_game_info* game)
   // and the first GPU command crashes.
   if (Config::Get(Config::MAIN_GFX_BACKEND) == "Metal")
   {
+    // The backend's lifetime is the context's here, so mark it live: retro_unload_game only shuts
+    // down a backend whose context was not destroyed, and a context_destroy from an earlier
+    // session would otherwise leave this one running until exit.
+    g_context_status.MarkReset();
     if (!g_video_backend || !Libretro::Video::Video_InitializeBackend())
     {
       ERROR_LOG_FMT(VIDEO, "Failed to initialize the Metal video backend");
@@ -826,8 +830,10 @@ void retro_unload_game(void)
   // these are disabled in Shutdown on fullscreen/window toggle
   system.GetFifo().Shutdown();
 
-  // Rest of shutdown
+  // Rest of shutdown. The core's statics outlive an unload (macOS keeps the dylib mapped), so
+  // don't let this session's context state carry into the next one.
   g_context_status.MarkUnitialized();
+  g_context_status.MarkUnknown();
   Libretro::Input::Shutdown();
   Libretro::Log::Shutdown();
   UICommon::ShutdownControllers();
