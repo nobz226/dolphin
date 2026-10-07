@@ -1467,7 +1467,7 @@ static struct retro_core_option_v2_definition option_defs[] = {
     Libretro::Options::gfx_hacks::MVK_ASYNC_SUBMIT,
     "Graphics > Hacks > MoltenVK Asynchronous Submits",
     "MoltenVK Asynchronous Submits",
-    "Vulkan on macOS: let MoltenVK hand command buffers to Metal without waiting for each submit. Takes effect when the content is loaded.",
+    "Vulkan on macOS: let MoltenVK hand command buffers to Metal without waiting for each submit. Experimental: RetroArch can crash when it rebuilds its video driver (closing content, switching drivers) while presents are still queued. Takes effect when the content is loaded.",
     nullptr,
     CATEGORY_GFX_HACKS,
     {
@@ -1475,7 +1475,7 @@ static struct retro_core_option_v2_definition option_defs[] = {
       { "enabled",  nullptr },
       { nullptr, nullptr }
     },
-    "enabled"
+    "disabled"
   },
   #endif
 

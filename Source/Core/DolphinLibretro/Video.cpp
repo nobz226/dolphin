@@ -685,7 +685,7 @@ VkInstance CreateInstance(PFN_vkGetInstanceProcAddr get_instance_proc_addr,
   // hands it over on MoltenVK's own thread instead.
   static VkBool32 synchronous_submits = VK_TRUE;
   synchronous_submits = Libretro::Options::GetCached<bool>(
-                            Libretro::Options::gfx_hacks::MVK_ASYNC_SUBMIT, true) ?
+                            Libretro::Options::gfx_hacks::MVK_ASYNC_SUBMIT, false) ?
                             VK_FALSE :
                             VK_TRUE;
 

@@ -654,6 +654,21 @@ bool retro_load_game(const struct retro_game_info* game)
   VideoBackendBase::PopulateBackendInfo(wsi);
   NOTICE_LOG_FMT(VIDEO, "Using GFX backend: {}", Config::Get(Config::MAIN_GFX_BACKEND));
 
+#ifdef HAS_METAL
+  // Libretro builds start the video backend from ContextReset(), which the frontend only calls for
+  // a context it created. Metal has none, so start it here - without it the FIFO is never set up
+  // and the first GPU command crashes.
+  if (Config::Get(Config::MAIN_GFX_BACKEND) == "Metal")
+  {
+    if (!g_video_backend || !Libretro::Video::Video_InitializeBackend())
+    {
+      ERROR_LOG_FMT(VIDEO, "Failed to initialize the Metal video backend");
+      return false;
+    }
+    g_context_status.MarkInitialized();
+  }
+#endif
+
   std::vector<std::string> normalized_game_paths;
   normalized_game_paths.push_back(Libretro::VFile::NormalizePath(game->path));
   std::string folder_path_str;
