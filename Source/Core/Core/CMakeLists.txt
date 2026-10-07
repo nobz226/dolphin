@@ -752,7 +752,7 @@ if(ENABLE_VULKAN)
   target_link_libraries(core PUBLIC videovulkan)
 endif()
 
-if(APPLE AND NOT LIBRETRO)
+if(ENABLE_METAL)
   target_link_libraries(core PUBLIC videometal)
 endif()
 

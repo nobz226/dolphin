@@ -43,7 +43,20 @@ static Common::DynamicLibrary s_vulkan_module;
 
 static bool OpenVulkanLibrary(bool force_system_library)
 {
-#if defined(__APPLE__) && !defined(__LIBRETRO__)
+#if defined(__APPLE__) && defined(__LIBRETRO__)
+  // The frontend has MoltenVK loaded already (RetroArch ships MoltenVK.framework); opening it again
+  // returns that same image. The generic libvulkan names below don't exist on macOS, which is what
+  // made the backend-info probe at boot report "Failed to load Vulkan library" while the renderer,
+  // which takes its functions from the frontend, worked fine.
+  for (const char* path : {"@executable_path/../Frameworks/MoltenVK.framework/MoltenVK",
+                           "@executable_path/../Frameworks/libMoltenVK.dylib", "libMoltenVK.dylib",
+                           "libvulkan.1.dylib", "libvulkan.dylib"})
+  {
+    if (s_vulkan_module.Open(path))
+      return true;
+  }
+  return false;
+#elif defined(__APPLE__)
   // Check if a path to a specific Vulkan library has been specified.
   char* libvulkan_env = getenv("LIBVULKAN_PATH");
   if (libvulkan_env && s_vulkan_module.Open(libvulkan_env))

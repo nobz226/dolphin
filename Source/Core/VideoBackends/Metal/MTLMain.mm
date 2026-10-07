@@ -57,6 +57,10 @@ static bool WindowSystemTypeSupportsMetal(WindowSystemType type)
   {
   case WindowSystemType::MacOS:
   case WindowSystemType::Headless:
+#ifdef __LIBRETRO__
+  // No layer: Gfx renders offscreen and reads frames back (see Gfx::SetLibretroOutput).
+  case WindowSystemType::Libretro:
+#endif
     return true;
   default:
     return false;
@@ -67,7 +71,11 @@ bool Metal::VideoBackend::Initialize(const WindowSystemInfo& wsi)
 {
   @autoreleasepool
   {
-    const bool surface_ok = wsi.type == WindowSystemType::Headless || wsi.render_surface;
+    const bool surface_ok = wsi.type == WindowSystemType::Headless ||
+#ifdef __LIBRETRO__
+                            wsi.type == WindowSystemType::Libretro ||
+#endif
+                            wsi.render_surface;
     if (!WindowSystemTypeSupportsMetal(wsi.type) || !surface_ok)
     {
       PanicAlertFmt("Bad WindowSystemInfo for Metal renderer.");

@@ -6,6 +6,9 @@
 #include <Metal/Metal.h>
 #include <QuartzCore/QuartzCore.h>
 
+#include <array>
+#include <memory>
+
 #include "VideoCommon/AbstractGfx.h"
 
 #include "VideoBackends/Metal/MRCHelpers.h"
@@ -86,5 +89,15 @@ private:
   void CheckForSurfaceChange();
   void CheckForSurfaceResize();
   void SetupSurface();
+
+#ifdef __LIBRETRO__
+  bool m_libretro_offscreen = false;
+  // Two readbacks in flight: a frame is handed over one present later, so the CPU never waits on
+  // the GPU for the frame it has only just submitted.
+  std::array<std::unique_ptr<AbstractStagingTexture>, 2> m_libretro_readback;
+  std::array<bool, 2> m_libretro_readback_pending = {};
+  u32 m_libretro_readback_slot = 0;
+  void PresentLibretroOffscreen();
+#endif
 };
 }  // namespace Metal

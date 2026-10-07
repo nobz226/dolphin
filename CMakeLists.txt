@@ -713,6 +713,13 @@ if(WIN32 OR APPLE)
 endif()
 add_subdirectory(Externals/tinygltf)
 
+# Metal: the default backend on macOS. libretro builds get it too (macOS only), as an opt-in
+# renderer that draws offscreen and hands frames to the frontend, since libretro has no Metal context.
+if(APPLE AND NOT (LIBRETRO AND IOS))
+  set(ENABLE_METAL ON)
+  add_definitions(-DHAS_METAL)
+endif()
+
 if(ENABLE_VULKAN)
   add_definitions(-DHAS_VULKAN)
 

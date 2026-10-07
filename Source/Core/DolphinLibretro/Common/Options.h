@@ -275,6 +275,7 @@ namespace gfx_hacks {
   constexpr const char FAST_TEXTURE_SAMPLING[] = "dolphin_fast_texture_sampling";
 #ifdef __APPLE__
   constexpr const char NO_MIPMAPPING[] = "dolphin_no_mipmapping";
+  constexpr const char MVK_ASYNC_SUBMIT[] = "dolphin_mvk_async_submit";
 #endif
 }  // namespace gfx_hacks
 

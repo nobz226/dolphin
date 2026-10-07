@@ -4,6 +4,7 @@ add_library(videometal
   MTLBoundingBox.h
   MTLGfx.mm
   MTLGfx.h
+  MTLLibretroOutput.h
   MTLMain.mm
   MTLObjectCache.h
   MTLObjectCache.mm

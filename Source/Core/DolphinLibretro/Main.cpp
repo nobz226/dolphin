@@ -322,6 +322,7 @@ void retro_run(void)
   {
     g_Config.iEFBScale = Libretro::Options::GetCached<int>(
       Libretro::Options::gfx_settings::EFB_SCALE);
+    Libretro::Video::UpdateMetalOutputSize();
 
     unsigned cmd = RETRO_ENVIRONMENT_SET_SYSTEM_AV_INFO;
     if (Libretro::Video::hw_render.context_type == RETRO_HW_CONTEXT_D3D11 ||
@@ -334,6 +335,7 @@ void retro_run(void)
 
   if (Libretro::Options::IsUpdated(Libretro::Options::gfx_settings::CROP_OVERSCAN))
   {
+    Libretro::Video::UpdateMetalOutputSize();
     retro_system_av_info info;
     retro_get_system_av_info(&info);
     // SET_GEOMETRY, not SET_SYSTEM_AV_INFO: the reinit would drop KMS to 240p.

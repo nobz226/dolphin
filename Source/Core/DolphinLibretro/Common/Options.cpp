@@ -851,6 +851,9 @@ static struct retro_core_option_v2_definition option_defs[] = {
     CATEGORY_GFX_SETTINGS,
     {
       { "Hardware", "Hardware" },
+  #ifdef HAS_METAL
+      { "Metal",    "Metal (frames read back)" },
+  #endif
   #if defined(_DEBUG) || defined(DEBUGFAST)
       { "Software", "Software Renderer" },
       { "Null",     "Null Renderer" },
@@ -1459,6 +1462,20 @@ static struct retro_core_option_v2_definition option_defs[] = {
       { nullptr, nullptr }
     },
     "disabled"
+  },
+  {
+    Libretro::Options::gfx_hacks::MVK_ASYNC_SUBMIT,
+    "Graphics > Hacks > MoltenVK Asynchronous Submits",
+    "MoltenVK Asynchronous Submits",
+    "Vulkan on macOS: let MoltenVK hand command buffers to Metal without waiting for each submit. Takes effect when the content is loaded.",
+    nullptr,
+    CATEGORY_GFX_HACKS,
+    {
+      { "disabled", nullptr },
+      { "enabled",  nullptr },
+      { nullptr, nullptr }
+    },
+    "enabled"
   },
   #endif
 

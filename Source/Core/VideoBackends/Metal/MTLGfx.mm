@@ -3,6 +3,10 @@
 
 #include "VideoBackends/Metal/MTLGfx.h"
 
+#ifdef __LIBRETRO__
+#include "VideoBackends/Metal/MTLLibretroOutput.h"
+#endif
+
 #include "VideoBackends/Metal/MTLBoundingBox.h"
 #include "VideoBackends/Metal/MTLObjectCache.h"
 #include "VideoBackends/Metal/MTLPipeline.h"
@@ -16,10 +20,28 @@
 #include "VideoCommon/Present.h"
 #include "VideoCommon/VideoBackendBase.h"
 
+#include <algorithm>
+#include <atomic>
 #include <fstream>
+
+#ifdef __LIBRETRO__
+static Metal::LibretroFrameCallback s_libretro_callback = nullptr;
+static std::atomic<u32> s_libretro_width{0};
+static std::atomic<u32> s_libretro_height{0};
+
+void Metal::SetLibretroOutput(LibretroFrameCallback callback, u32 width, u32 height)
+{
+  s_libretro_callback = callback;
+  s_libretro_width.store(width, std::memory_order_relaxed);
+  s_libretro_height.store(height, std::memory_order_relaxed);
+}
+#endif
 
 Metal::Gfx::Gfx(MRCOwned<CAMetalLayer*> layer) : m_layer(std::move(layer))
 {
+#ifdef __LIBRETRO__
+  m_libretro_offscreen = !m_layer && s_libretro_callback;
+#endif
   UpdateActiveConfig();
   [m_layer setDisplaySyncEnabled:g_ActiveConfig.bVSyncActive];
 
@@ -31,6 +53,10 @@ Metal::Gfx::~Gfx() = default;
 
 bool Metal::Gfx::IsHeadless() const
 {
+#ifdef __LIBRETRO__
+  if (m_libretro_offscreen)
+    return false;
+#endif
   return m_layer == nullptr;
 }
 
@@ -452,6 +478,19 @@ bool Metal::Gfx::BindBackbuffer(const ClearColor& clear_color)
 {
   @autoreleasepool
   {
+#ifdef __LIBRETRO__
+    if (m_libretro_offscreen)
+    {
+      const SurfaceInfo info = GetSurfaceInfo();
+      if (!m_backbuffer || m_backbuffer->GetWidth() != info.width ||
+          m_backbuffer->GetHeight() != info.height)
+      {
+        SetupSurface();
+      }
+      SetAndClearFramebuffer(m_backbuffer.get(), clear_color);
+      return true;
+    }
+#endif
     CheckForSurfaceChange();
     CheckForSurfaceResize();
     m_drawable = MRCRetain([m_layer nextDrawable]);
@@ -465,6 +504,13 @@ void Metal::Gfx::PresentBackbuffer()
 {
   @autoreleasepool
   {
+#ifdef __LIBRETRO__
+    if (m_libretro_offscreen)
+    {
+      PresentLibretroOffscreen();
+      return;
+    }
+#endif
     g_state_tracker->EndRenderPass();
     if (m_drawable)
     {
@@ -505,6 +551,30 @@ void Metal::Gfx::SetupSurface()
 {
   auto info = GetSurfaceInfo();
 
+#ifdef __LIBRETRO__
+  if (m_libretro_offscreen)
+  {
+    // A real render target this time: nothing swaps a drawable's texture into it.
+    TextureConfig cfg(info.width, info.height, 1, 1, 1, info.format,
+                      AbstractTextureFlag_RenderTarget, AbstractTextureType::Texture_2DArray);
+    m_bb_texture.reset(static_cast<Texture*>(CreateTexture(cfg, "Libretro backbuffer").release()));
+    m_backbuffer = std::make_unique<Framebuffer>(m_bb_texture.get(), nullptr,
+                                                 std::vector<AbstractTexture*>{}, info.width,
+                                                 info.height, 1, 1);
+
+    const TextureConfig readback_cfg(info.width, info.height, 1, 1, 1, info.format, 0,
+                                     AbstractTextureType::Texture_2D);
+    for (auto& readback : m_libretro_readback)
+      readback = CreateStagingTexture(StagingTextureType::Readback, readback_cfg);
+    m_libretro_readback_pending = {};
+    m_libretro_readback_slot = 0;
+
+    if (g_presenter)
+      g_presenter->SetBackbuffer(info);
+    return;
+  }
+#endif
+
   [m_layer setDrawableSize:{static_cast<double>(info.width), static_cast<double>(info.height)}];
 
   TextureConfig cfg(info.width, info.height, 1, 1, 1, info.format, AbstractTextureFlag_RenderTarget,
@@ -519,6 +589,14 @@ void Metal::Gfx::SetupSurface()
 
 SurfaceInfo Metal::Gfx::GetSurfaceInfo() const
 {
+#ifdef __LIBRETRO__
+  if (m_libretro_offscreen)
+  {
+    return {std::max(s_libretro_width.load(std::memory_order_relaxed), 1u),
+            std::max(s_libretro_height.load(std::memory_order_relaxed), 1u), 1.0f,
+            AbstractTextureFormat::BGRA8};
+  }
+#endif
   if (!m_layer)  // Headless
     return {};
 
@@ -528,3 +606,39 @@ SurfaceInfo Metal::Gfx::GetSurfaceInfo() const
   return {static_cast<u32>(size.width * scale), static_cast<u32>(size.height * scale), scale,
           Util::ToAbstract([m_layer pixelFormat])};
 }
+
+#ifdef __LIBRETRO__
+void Metal::Gfx::PresentLibretroOffscreen()
+{
+  g_state_tracker->EndRenderPass();
+
+  // Queue this frame's copy-back with the frame itself...
+  const u32 slot = m_libretro_readback_slot;
+  AbstractStagingTexture* const current = m_libretro_readback[slot].get();
+  if (current)
+  {
+    const MathUtil::Rectangle<int> rect(0, 0, static_cast<int>(m_backbuffer->GetWidth()),
+                                        static_cast<int>(m_backbuffer->GetHeight()));
+    current->CopyFromTexture(m_bb_texture.get(), rect, 0, 0, rect);
+    m_libretro_readback_pending[slot] = true;
+  }
+  g_state_tracker->FlushEncoders();
+
+  // ...and hand over the one queued at the previous present, which the GPU has normally finished
+  // by now. That is a frame of latency in exchange for never stalling on the frame just submitted.
+  const u32 previous = slot ^ 1;
+  AbstractStagingTexture* const ready = m_libretro_readback[previous].get();
+  if (ready && m_libretro_readback_pending[previous])
+  {
+    ready->Flush();
+    if (s_libretro_callback && ready->Map())
+    {
+      const TextureConfig& cfg = ready->GetConfig();
+      s_libretro_callback(ready->GetMappedPointer(), cfg.width, cfg.height,
+                          ready->GetMappedStride());
+    }
+    m_libretro_readback_pending[previous] = false;
+  }
+  m_libretro_readback_slot = previous;
+}
+#endif

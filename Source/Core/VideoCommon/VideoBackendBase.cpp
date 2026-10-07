@@ -38,7 +38,7 @@
 #ifdef HAS_VULKAN
 #include "VideoBackends/Vulkan/VideoBackend.h"
 #endif
-#if defined(__APPLE__) && !defined(__LIBRETRO__)
+#ifdef HAS_METAL
 #include "VideoBackends/Metal/VideoBackend.h"
 #endif
 
@@ -223,8 +223,13 @@ const std::vector<std::unique_ptr<VideoBackendBase>>& VideoBackendBase::GetAvail
     backends.push_back(std::make_unique<Vulkan::VideoBackend>());
 #endif
 #endif
-#if defined(__APPLE__) && !defined(__LIBRETRO__)
+#ifdef HAS_METAL
+#ifdef __LIBRETRO__
+    // An explicit choice in the core options, not the default: it reads frames back.
+    backends.push_back(std::make_unique<Metal::VideoBackend>());
+#else
     backends.emplace(backends.begin(), std::make_unique<Metal::VideoBackend>());
+#endif
 #endif
 #ifdef HAS_OPENGL
     backends.push_back(std::make_unique<SW::VideoSoftware>());

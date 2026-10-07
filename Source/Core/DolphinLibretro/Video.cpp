@@ -41,6 +41,9 @@
 #include "Core/System.h"
 #include "DolphinLibretro/Common/Options.h"
 #include "DolphinLibretro/VideoContexts/ContextStatus.h"
+#ifdef HAS_METAL
+#include "VideoBackends/Metal/MTLLibretroOutput.h"
+#endif
 
 #include "VideoCommon/AsyncRequests.h"
 #include "VideoCommon/Fifo.h"
@@ -92,12 +95,44 @@ int GetAdjustedBaseHeight()
   return EFB_HEIGHT;
 }
 
+#ifdef HAS_METAL
+// Frames from the Metal backend, read back from its offscreen backbuffer (BGRA8 = XRGB8888).
+// Called while the GPU loop runs inside retro_run().
+static void MetalFrame(const void* data, u32 width, u32 height, size_t pitch)
+{
+  video_cb(data, width, height, pitch);
+}
+#endif
+
+void UpdateMetalOutputSize()
+{
+#ifdef HAS_METAL
+  if (Config::Get(Config::MAIN_GFX_BACKEND) != "Metal")
+    return;
+  const int efb_scale = Libretro::Options::GetCached<int>(
+    Libretro::Options::gfx_settings::EFB_SCALE, 1);
+  Metal::SetLibretroOutput(MetalFrame, EFB_WIDTH * efb_scale, GetAdjustedBaseHeight() * efb_scale);
+#endif
+}
+
 void Init()
 {
   DEBUG_LOG_FMT(VIDEO, "Video - Init");
 
   std::string renderer = Libretro::Options::GetCached<std::string>(
     Libretro::Options::gfx_settings::RENDERER);
+
+#ifdef HAS_METAL
+  // No libretro context for Metal: the backend renders offscreen and frames reach the frontend
+  // as ordinary XRGB8888 buffers, one frame late so the GPU is never waited on.
+  if (renderer == "Metal")
+  {
+    hw_render.context_type = RETRO_HW_CONTEXT_NONE;
+    Config::SetBase(Config::MAIN_GFX_BACKEND, "Metal");
+    UpdateMetalOutputSize();
+    return;
+  }
+#endif
 
   if (renderer == "Hardware")
   {
@@ -645,18 +680,31 @@ VkInstance CreateInstance(PFN_vkGetInstanceProcAddr get_instance_proc_addr,
 
 
   static VkBool32 disable_arg_buffers = VK_FALSE;
+  // MoltenVK submits synchronously by default: vkQueueSubmit doesn't return until Metal has the
+  // command buffer, and the video thread waits that out on every submit. Asynchronous submission
+  // hands it over on MoltenVK's own thread instead.
+  static VkBool32 synchronous_submits = VK_TRUE;
+  synchronous_submits = Libretro::Options::GetCached<bool>(
+                            Libretro::Options::gfx_hacks::MVK_ASYNC_SUBMIT, true) ?
+                            VK_FALSE :
+                            VK_TRUE;
 
-  VkLayerSettingEXT layer_setting = {};
-  layer_setting.pLayerName = "MoltenVK";
-  layer_setting.pSettingName = "MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS";
-  layer_setting.type = VK_LAYER_SETTING_TYPE_BOOL32_EXT;
-  layer_setting.valueCount = 1;
-  layer_setting.pValues = &disable_arg_buffers;
+  VkLayerSettingEXT layer_setting_list[2] = {};
+  layer_setting_list[0].pLayerName = "MoltenVK";
+  layer_setting_list[0].pSettingName = "MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS";
+  layer_setting_list[0].type = VK_LAYER_SETTING_TYPE_BOOL32_EXT;
+  layer_setting_list[0].valueCount = 1;
+  layer_setting_list[0].pValues = &disable_arg_buffers;
+  layer_setting_list[1].pLayerName = "MoltenVK";
+  layer_setting_list[1].pSettingName = "MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS";
+  layer_setting_list[1].type = VK_LAYER_SETTING_TYPE_BOOL32_EXT;
+  layer_setting_list[1].valueCount = 1;
+  layer_setting_list[1].pValues = &synchronous_submits;
 
   VkLayerSettingsCreateInfoEXT layer_settings = {};
   layer_settings.sType = VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT;
-  layer_settings.settingCount = 1;
-  layer_settings.pSettings = &layer_setting;
+  layer_settings.settingCount = 2;
+  layer_settings.pSettings = layer_setting_list;
 
   create_info.pNext = &layer_settings;
 
