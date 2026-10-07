@@ -97,10 +97,12 @@ int GetAdjustedBaseHeight()
 
 #ifdef HAS_METAL
 // Frames from the Metal backend, read back from its offscreen backbuffer (BGRA8 = XRGB8888).
-// Called while the GPU loop runs inside retro_run().
+// Called while the GPU loop runs inside retro_run(). The backend also presents once while it
+// starts in retro_load_game, which RetroArch calls before it sets video_cb, so drop that frame.
 static void MetalFrame(const void* data, u32 width, u32 height, size_t pitch)
 {
-  video_cb(data, width, height, pitch);
+  if (video_cb)
+    video_cb(data, width, height, pitch);
 }
 #endif
 
