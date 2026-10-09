@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <libretro.h>
 #include <string>
+#include <string_view>
 #include <functional>
 #include <filesystem>
 #include <fstream>
@@ -303,6 +304,10 @@ bool retro_load_game(const struct retro_game_info* game)
   {
     // Log the message instead of showing a popup
     WARN_LOG_FMT(COMMON, "Suppressed popup: {} - {}", caption, text);
+    // An IPL that isn't on Dolphin's list of known dumps still boots; the
+    // warning on every GameCube launch only alarms, so it stays in the log.
+    if (std::string_view(text).starts_with("The IPL file is not a known good dump"))
+      return true;
     Libretro::Log::LogFrontEnd(style, caption, text, 2000);
     return true; // Always "continue"
   });
