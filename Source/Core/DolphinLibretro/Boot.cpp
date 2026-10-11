@@ -308,6 +308,12 @@ bool retro_load_game(const struct retro_game_info* game)
     // warning on every GameCube launch only alarms, so it stays in the log.
     if (std::string_view(text).starts_with("The IPL file is not a known good dump"))
       return true;
+    // Failed ASSERT()s are developer self-checks ("An error occurred. Condition: ...")
+    // that emulation continues past, e.g. the indirect-texture matrix check in
+    // PixelShaderGen that the Resident Evil Wii games and Rogue Leader trip while
+    // shaders compile. Their output is unaffected, so they stay in the log too.
+    if (std::string_view(text).find("\n  Condition: ") != std::string_view::npos)
+      return true;
     Libretro::Log::LogFrontEnd(style, caption, text, 2000);
     return true; // Always "continue"
   });
