@@ -313,6 +313,17 @@ void CheckForConfigChanges()
   UpdateActiveConfig();
   g_vertex_manager->OnConfigChange();
 
+#ifdef __LIBRETRO__
+  // Video starts before the disc is opened: load the game's shader caches once
+  // its ID is known, the same way a host-config change reloads them.
+  if (g_shader_cache->NeedsGameCacheLoad())
+  {
+    g_gfx->WaitForGPUIdle();
+    g_vertex_manager->InvalidatePipelineObject();
+    g_shader_cache->LoadGameCaches();
+  }
+#endif
+
   g_freelook_camera.RefreshConfig();
 
   if (g_ActiveConfig.bGraphicMods && !old_graphics_mods_enabled)

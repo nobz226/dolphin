@@ -65,6 +65,12 @@ public:
   // Retrieves all pending shaders/pipelines from the async compiler.
   void RetrieveAsyncShaders();
 
+#ifdef __LIBRETRO__
+  // The game ID became known (or changed) after the caches were set up.
+  bool NeedsGameCacheLoad() const;
+  void LoadGameCaches();
+#endif
+
   // Accesses ShaderGen shader caches
   const AbstractPipeline* GetPipelineForUid(const GXPipelineUid& uid);
   const AbstractPipeline* GetUberPipelineForUid(const GXUberPipelineUid& uid);
@@ -127,6 +133,7 @@ private:
   void ClosePipelineUIDCache();
 #ifdef __LIBRETRO__
   void WritePendingPipelineUIDs();
+  static bool IsKnownGameID();
 #endif
   void CompileMissingPipelines();
   void QueueUberShaderPipelines();
@@ -237,6 +244,8 @@ private:
   File::IOFile m_gx_pipeline_uid_cache_file;
 #ifdef __LIBRETRO__
   std::vector<SerializedGXPipelineUid> m_pending_gx_pipeline_uids;
+  // Game whose caches are loaded (empty: none yet).
+  std::string m_cache_game_id;
 #endif
   Common::LinearDiskCache<SerializedGXPipelineUid, u8> m_gx_pipeline_disk_cache;
   Common::LinearDiskCache<SerializedGXUberPipelineUid, u8> m_gx_uber_pipeline_disk_cache;

@@ -59,7 +59,16 @@ void ShaderCache::InitializeShaderCache()
   m_async_shader_compiler->ResizeWorkerThreads(g_ActiveConfig.GetShaderPrecompilerThreads());
 
   // Load shader and UID caches.
+#ifdef __LIBRETRO__
+  // The libretro core sets video up before the disc is opened, so the game ID
+  // is usually still unknown here. Loading now used the shared "no game" file
+  // (00000000.uidcache), which collected every game's pipelines and was
+  // precompiled for all of them; LoadGameCaches() loads the game's own caches
+  // as soon as its ID is known.
+  if (g_ActiveConfig.bShaderCache && m_api_type != APIType::Nothing && IsKnownGameID())
+#else
   if (g_ActiveConfig.bShaderCache && m_api_type != APIType::Nothing)
+#endif
   {
     LoadCaches();
     LoadPipelineUIDCache();
@@ -101,6 +110,40 @@ void ShaderCache::Reload()
     WaitForAsyncCompiler();
   m_async_shader_compiler->ResizeWorkerThreads(g_ActiveConfig.GetShaderCompilerThreads());
 }
+
+#ifdef __LIBRETRO__
+bool ShaderCache::IsKnownGameID()
+{
+  const std::string& id = SConfig::GetInstance().GetGameID();
+  return !id.empty() && id != "00000000";
+}
+
+bool ShaderCache::NeedsGameCacheLoad() const
+{
+  return g_ActiveConfig.bShaderCache && m_api_type != APIType::Nothing && IsKnownGameID() &&
+         SConfig::GetInstance().GetGameID() != m_cache_game_id;
+}
+
+void ShaderCache::LoadGameCaches()
+{
+  INFO_LOG_FMT(VIDEO, "Loading the shader caches for {}", SConfig::GetInstance().GetGameID());
+  WaitForAsyncCompiler();
+  ClosePipelineUIDCache();
+  ClearCaches();
+
+  if (!CompileSharedPipelines())
+    PanicAlertFmt("Failed to compile shared pipelines after loading the game's shader caches.");
+
+  LoadCaches();
+  LoadPipelineUIDCache();
+
+  m_async_shader_compiler->ResizeWorkerThreads(g_ActiveConfig.GetShaderPrecompilerThreads());
+  CompileMissingPipelines();
+  if (g_ActiveConfig.bWaitForShadersBeforeStarting)
+    WaitForAsyncCompiler();
+  m_async_shader_compiler->ResizeWorkerThreads(g_ActiveConfig.GetShaderCompilerThreads());
+}
+#endif
 
 void ShaderCache::RetrieveAsyncShaders()
 {
@@ -805,6 +848,9 @@ void ShaderCache::LoadPipelineUIDCache()
   constexpr size_t CACHE_HEADER_SIZE = sizeof(u32) + sizeof(u32);
   std::string filename =
       File::GetUserPath(D_CACHE_IDX) + SConfig::GetInstance().GetGameID() + ".uidcache";
+#ifdef __LIBRETRO__
+  m_cache_game_id = SConfig::GetInstance().GetGameID();
+#endif
   if (m_gx_pipeline_uid_cache_file.Open(filename, "rb+"))
   {
     // If an existing case exists, validate the version before reading entries.
