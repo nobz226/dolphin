@@ -125,6 +125,9 @@ private:
   void ClearCaches();
   void LoadPipelineUIDCache();
   void ClosePipelineUIDCache();
+#ifdef __LIBRETRO__
+  void WritePendingPipelineUIDs();
+#endif
   void CompileMissingPipelines();
   void QueueUberShaderPipelines();
   bool CompileSharedPipelines();

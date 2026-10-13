@@ -105,6 +105,13 @@ void ShaderCache::Reload()
 void ShaderCache::RetrieveAsyncShaders()
 {
   m_async_shader_compiler->RetrieveWorkItems();
+#ifdef __LIBRETRO__
+  // Save the pipelines this frame discovered at the frame boundary. Waiting
+  // for shutdown lost a whole session's worth whenever the core was unloaded
+  // without a clean video shutdown, and "Compile shaders before starting"
+  // then had nothing to precompile the next time.
+  WritePendingPipelineUIDs();
+#endif
 }
 
 void ShaderCache::Shutdown()
@@ -813,9 +820,22 @@ void ShaderCache::LoadPipelineUIDCache()
       // garbage or invalid UIDs.
       const u64 file_size = m_gx_pipeline_uid_cache_file.GetSize();
       const size_t uid_count =
-          static_cast<size_t>(file_size - CACHE_HEADER_SIZE) / sizeof(SerializedGXPipelineUid);
+          file_size < CACHE_HEADER_SIZE ?
+              0 :
+              static_cast<size_t>(file_size - CACHE_HEADER_SIZE) / sizeof(SerializedGXPipelineUid);
       const size_t expected_size = uid_count * sizeof(SerializedGXPipelineUid) + CACHE_HEADER_SIZE;
       uid_file_valid = file_size == expected_size;
+      // A session cut off while writing leaves a partial last entry. Keep the
+      // complete entries and drop only that tail: discarding the whole file here
+      // threw away every pipeline the game had built up, so the next boot had
+      // nothing to precompile.
+      if (!uid_file_valid && file_size > expected_size)
+      {
+        WARN_LOG_FMT(VIDEO, "{} ends in a partial entry; keeping its {} complete pipeline UIDs",
+                     filename, uid_count);
+        uid_file_valid = m_gx_pipeline_uid_cache_file.Resize(expected_size) &&
+                         m_gx_pipeline_uid_cache_file.Seek(CACHE_HEADER_SIZE, File::SeekOrigin::Begin);
+      }
       if (uid_file_valid)
       {
         for (size_t i = 0; i < uid_count; i++)
@@ -869,16 +889,26 @@ void ShaderCache::ClosePipelineUIDCache()
 {
   // This is left as a method in case we need to append extra data to the file in the future.
 #ifdef __LIBRETRO__
-  if (m_gx_pipeline_uid_cache_file.IsOpen() && !m_pending_gx_pipeline_uids.empty() &&
-      !m_gx_pipeline_uid_cache_file.WriteArray(m_pending_gx_pipeline_uids.data(),
-                                                m_pending_gx_pipeline_uids.size()))
+  WritePendingPipelineUIDs();
+#endif
+  m_gx_pipeline_uid_cache_file.Close();
+}
+
+#ifdef __LIBRETRO__
+void ShaderCache::WritePendingPipelineUIDs()
+{
+  if (m_pending_gx_pipeline_uids.empty())
+    return;
+  if (m_gx_pipeline_uid_cache_file.IsOpen() &&
+      (!m_gx_pipeline_uid_cache_file.WriteArray(m_pending_gx_pipeline_uids.data(),
+                                                 m_pending_gx_pipeline_uids.size()) ||
+       !m_gx_pipeline_uid_cache_file.Flush()))
   {
     WARN_LOG_FMT(VIDEO, "Writing pipeline UIDs to cache failed.");
   }
   m_pending_gx_pipeline_uids.clear();
-#endif
-  m_gx_pipeline_uid_cache_file.Close();
 }
+#endif
 
 void ShaderCache::AddSerializedGXPipelineUID(const SerializedGXPipelineUid& uid)
 {
