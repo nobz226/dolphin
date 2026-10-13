@@ -56,6 +56,17 @@ bool ShaderCache::Initialize()
 
 void ShaderCache::InitializeShaderCache()
 {
+#ifdef __LIBRETRO__
+  // Video starts while RetroArch is still loading the game, before it can show
+  // a frame, so precompiling here only meant a longer black screen. The game's
+  // caches and the ubershaders are compiled in the first frame instead, by
+  // LoadGameCaches(), where the "Compiling shaders" screen reaches the display.
+  if (g_ActiveConfig.bShaderCache && m_api_type != APIType::Nothing && IsKnownGameID())
+  {
+    m_async_shader_compiler->ResizeWorkerThreads(g_ActiveConfig.GetShaderCompilerThreads());
+    return;
+  }
+#endif
   m_async_shader_compiler->ResizeWorkerThreads(g_ActiveConfig.GetShaderPrecompilerThreads());
 
   // Load shader and UID caches.
@@ -151,6 +162,8 @@ void ShaderCache::LoadGameCaches()
   LoadPipelineUIDCache();
 
   m_async_shader_compiler->ResizeWorkerThreads(g_ActiveConfig.GetShaderPrecompilerThreads());
+  if (g_ActiveConfig.UsingUberShaders())
+    QueueUberShaderPipelines();
   CompileMissingPipelines();
   if (g_ActiveConfig.bWaitForShadersBeforeStarting)
     WaitForAsyncCompiler();
