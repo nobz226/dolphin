@@ -112,21 +112,34 @@ void ShaderCache::Reload()
 }
 
 #ifdef __LIBRETRO__
-bool ShaderCache::IsKnownGameID()
+std::string ShaderCache::s_game_id_hint;
+
+void ShaderCache::SetGameIDHint(std::string game_id)
+{
+  s_game_id_hint = std::move(game_id);
+}
+
+std::string ShaderCache::CacheGameID()
 {
   const std::string& id = SConfig::GetInstance().GetGameID();
+  return (!id.empty() && id != "00000000") ? id : s_game_id_hint;
+}
+
+bool ShaderCache::IsKnownGameID()
+{
+  const std::string id = CacheGameID();
   return !id.empty() && id != "00000000";
 }
 
 bool ShaderCache::NeedsGameCacheLoad() const
 {
   return g_ActiveConfig.bShaderCache && m_api_type != APIType::Nothing && IsKnownGameID() &&
-         SConfig::GetInstance().GetGameID() != m_cache_game_id;
+         CacheGameID() != m_cache_game_id;
 }
 
 void ShaderCache::LoadGameCaches()
 {
-  INFO_LOG_FMT(VIDEO, "Loading the shader caches for {}", SConfig::GetInstance().GetGameID());
+  INFO_LOG_FMT(VIDEO, "Loading the shader caches for {}", CacheGameID());
   WaitForAsyncCompiler();
   ClosePipelineUIDCache();
   ClearCaches();
@@ -846,10 +859,12 @@ void ShaderCache::LoadPipelineUIDCache()
 {
   constexpr u32 CACHE_FILE_MAGIC = 0x44495550;  // PUID
   constexpr size_t CACHE_HEADER_SIZE = sizeof(u32) + sizeof(u32);
+#ifdef __LIBRETRO__
+  m_cache_game_id = CacheGameID();
+  std::string filename = File::GetUserPath(D_CACHE_IDX) + m_cache_game_id + ".uidcache";
+#else
   std::string filename =
       File::GetUserPath(D_CACHE_IDX) + SConfig::GetInstance().GetGameID() + ".uidcache";
-#ifdef __LIBRETRO__
-  m_cache_game_id = SConfig::GetInstance().GetGameID();
 #endif
   if (m_gx_pipeline_uid_cache_file.Open(filename, "rb+"))
   {

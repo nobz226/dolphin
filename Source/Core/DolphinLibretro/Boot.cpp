@@ -17,6 +17,8 @@
 #include "Core/Config/MainSettings.h"
 #include "Core/Config/SYSCONFSettings.h"
 #include "Core/ConfigManager.h"
+#include "DiscIO/Volume.h"
+#include "VideoCommon/ShaderCache.h"
 #include "Core/Core.h"
 #include "Core/GeckoCodeConfig.h"
 #include "Core/HW/DVD/DVDInterface.h"
@@ -664,6 +666,16 @@ bool retro_load_game(const struct retro_game_info* game)
   WindowSystemInfo wsi(WindowSystemType::Libretro, nullptr, nullptr, nullptr);
   VideoBackendBase::PopulateBackendInfo(wsi);
   NOTICE_LOG_FMT(VIDEO, "Using GFX backend: {}", Config::Get(Config::MAIN_GFX_BACKEND));
+
+  // Tell the shader cache which game this is before video starts, so the
+  // game's caches load and precompile during startup (with the "Compiling
+  // shaders" screen) rather than a moment into the game.
+  {
+    std::string game_id;
+    if (auto volume = DiscIO::CreateVolume(Libretro::VFile::NormalizePath(game->path)))
+      game_id = volume->GetGameID();
+    ShaderCache::SetGameIDHint(game_id);
+  }
 
 #ifdef HAS_METAL
   // Libretro builds start the video backend from ContextReset(), which the frontend only calls for

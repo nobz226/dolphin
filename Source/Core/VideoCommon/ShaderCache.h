@@ -69,6 +69,9 @@ public:
   // The game ID became known (or changed) after the caches were set up.
   bool NeedsGameCacheLoad() const;
   void LoadGameCaches();
+  // The game being loaded, read from the disc before video starts (the
+  // emulator only sets its own game ID later, while booting).
+  static void SetGameIDHint(std::string game_id);
 #endif
 
   // Accesses ShaderGen shader caches
@@ -134,6 +137,8 @@ private:
 #ifdef __LIBRETRO__
   void WritePendingPipelineUIDs();
   static bool IsKnownGameID();
+  static std::string CacheGameID();
+  static std::string s_game_id_hint;
 #endif
   void CompileMissingPipelines();
   void QueueUberShaderPipelines();
