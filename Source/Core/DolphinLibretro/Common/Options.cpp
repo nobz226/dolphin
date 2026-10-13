@@ -1282,6 +1282,20 @@ static struct retro_core_option_v2_definition option_defs[] = {
     "enabled"
   },
   {
+    Libretro::Options::gfx_hacks::FIELD_DRAWN_VIDEO,
+    "Graphics > Hacks > Field-Drawn Video Fix",
+    "Field-Drawn Video Fix",
+    "For games that draw each interlaced field as its own frame, such as Metroid Prime's attract movies, which show stripes with Force Progressive. Shows those fields on their own, keeps everything else progressive, and keeps XFB copies in RAM while on. Enable it only for games that need it.",
+    nullptr,
+    CATEGORY_GFX_HACKS,
+    {
+      { "disabled", nullptr },
+      { "enabled",  nullptr },
+      { nullptr, nullptr }
+    },
+    "disabled"
+  },
+  {
     Libretro::Options::gfx_hacks::EFB_TO_TEXTURE,
     "Graphics > Hacks > Skip EFB Copy to RAM",
     "Skip EFB Copy to RAM",

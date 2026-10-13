@@ -4,6 +4,8 @@
 #include "VideoCommon/BPStructs.h"
 
 #include <algorithm>
+#include <array>
+#include <atomic>
 #include <cstring>
 #include <string>
 
@@ -45,6 +47,46 @@ using namespace BPFunctions;
 
 static constexpr Common::EnumMap<float, GammaCorrection::Invalid2_2> s_gammaLUT = {1.0f, 1.7f, 2.2f,
                                                                                    2.2f};
+
+// The last few EFB-to-XFB copies (address, lines), for the field-drawn video fix.
+// Written on the GPU thread, read by the video interface on the CPU thread.
+namespace
+{
+struct XFBCopyRecord
+{
+  std::atomic<u32> addr{0};
+  std::atomic<u32> lines{0};
+};
+std::array<XFBCopyRecord, 4> s_recent_xfb_copies;
+std::atomic<u32> s_recent_xfb_copy_next{0};
+
+void RecordXFBCopy(u32 addr, u32 lines)
+{
+  // A copy to an address seen recently replaces that record, so a buffer
+  // filled in parts (several copies) keeps only its latest part.
+  for (auto& r : s_recent_xfb_copies)
+  {
+    if (r.addr.load(std::memory_order_relaxed) == addr)
+    {
+      r.lines.store(lines, std::memory_order_relaxed);
+      return;
+    }
+  }
+  auto& r = s_recent_xfb_copies[s_recent_xfb_copy_next.fetch_add(1) % s_recent_xfb_copies.size()];
+  r.lines.store(lines, std::memory_order_relaxed);
+  r.addr.store(addr, std::memory_order_relaxed);
+}
+}  // namespace
+
+bool XFBWasSingleFullCopy(u32 addr, u32 lines)
+{
+  for (const auto& r : s_recent_xfb_copies)
+  {
+    if (r.addr.load(std::memory_order_relaxed) == addr)
+      return r.lines.load(std::memory_order_relaxed) >= lines;
+  }
+  return false;
+}
 
 void BPInit()
 {
@@ -335,6 +377,7 @@ static void BPWritten(PixelShaderManager& pixel_shader_manager, XFStateManager& 
                       destAddr, srcRect.left, srcRect.top, srcRect.right, srcRect.bottom,
                       bpmem.copyTexSrcWH.x + 1, destStride, height, yScale);
 
+        RecordXFBCopy(destAddr, height);
         bool is_depth_copy = bpmem.zcontrol.pixel_format == PixelFormat::Z24;
         g_texture_cache->CopyRenderTargetToTexture(
             destAddr, EFBCopyFormat::XFB, copy_width, height, destStride, is_depth_copy, srcRect,

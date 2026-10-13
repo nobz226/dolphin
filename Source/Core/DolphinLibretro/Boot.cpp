@@ -573,6 +573,19 @@ bool retro_load_game(const struct retro_game_info* game)
                  Libretro::GetOption<bool>(gfx_hacks::SKIP_DUPE_FRAMES, /*def=*/true));
   Config::SetBase(Config::GFX_HACK_EARLY_XFB_OUTPUT,
                  Libretro::GetOption<bool>(gfx_hacks::EARLY_XFB_OUTPUT, /*def=*/true));
+  {
+    const bool field_drawn_video =
+        Libretro::GetOption<bool>(gfx_hacks::FIELD_DRAWN_VIDEO, /*def=*/false);
+    Config::SetBase(Config::GFX_HACK_FIELD_DRAWN_VIDEO, field_drawn_video);
+    if (field_drawn_video)
+    {
+      // A field read on its own needs the XFB in RAM (texture-only XFBs only
+      // serve whole frames), and output at the end of the field so it isn't
+      // read while the game is still copying the next one (a tear line).
+      Config::SetBase(Config::GFX_HACK_SKIP_XFB_COPY_TO_RAM, false);
+      Config::SetBase(Config::GFX_HACK_EARLY_XFB_OUTPUT, false);
+    }
+  }
   Config::SetBase(Config::GFX_HACK_COPY_EFB_SCALED,
                  Libretro::GetOption<bool>(gfx_hacks::EFB_SCALED_COPY, /*def=*/true));
   Config::SetBase(Config::GFX_HACK_EFB_EMULATE_FORMAT_CHANGES,

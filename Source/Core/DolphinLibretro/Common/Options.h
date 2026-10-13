@@ -261,6 +261,7 @@ namespace gfx_hacks {
   constexpr const char EFB_ACCESS_TILE_SIZE[] = "dolphin_efb_access_tile_size";
   constexpr const char BBOX_ENABLED[] = "dolphin_bbox_enabled";
   constexpr const char FORCE_PROGRESSIVE[] = "dolphin_force_progressive";
+  constexpr const char FIELD_DRAWN_VIDEO[] = "dolphin_field_drawn_video";
   constexpr const char EFB_TO_TEXTURE[] = "dolphin_efb_to_texture";
   constexpr const char XFB_TO_TEXTURE_ENABLE[] = "dolphin_xfb_to_texture_enable";
   constexpr const char EFB_TO_VRAM[] = "dolphin_efb_to_vram";

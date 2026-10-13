@@ -33,6 +33,7 @@
 
 #include "DiscIO/Enums.h"
 
+#include "VideoCommon/BPStructs.h"
 #include "VideoCommon/VideoBackendBase.h"
 #include "VideoCommon/VideoConfig.h"
 #include "VideoCommon/VideoEvents.h"
@@ -829,8 +830,26 @@ void VideoInterfaceManager::OutputField(FieldType field, u64 ticks)
   // Multiply the stride by 2 to get the byte offset for each subsequent line.
   fbStride *= 2;
 
-  if (potentially_interlaced_xfb && interlaced_video_mode &&
-      Config::Get(Config::GFX_HACK_FORCE_PROGRESSIVE))
+  bool force_progressive = potentially_interlaced_xfb && interlaced_video_mode &&
+                           Config::Get(Config::GFX_HACK_FORCE_PROGRESSIVE);
+
+  // Field-drawn video fix: some games (Metroid Prime's attract movies) draw every
+  // field as its own full frame, in which only that field's lines are meant to be
+  // seen. Weaving the whole buffer then shows the other field's junk lines as
+  // stripes, so such fields are shown on their own. Buffers filled any other way -
+  // the GameCube boot animation copies in parts - keep the progressive weave.
+  if (force_progressive && Config::Get(Config::GFX_HACK_FIELD_DRAWN_VIDEO) && xfbAddr)
+  {
+    const u32 line_bytes = fbWidth * 2;
+    const u32 frame_lines = fbHeight * 2;
+    if (XFBWasSingleFullCopy(xfbAddr, frame_lines) ||
+        XFBWasSingleFullCopy(xfbAddr - line_bytes, frame_lines))
+    {
+      force_progressive = false;
+    }
+  }
+
+  if (force_progressive)
   {
     // Strictly speaking, in interlaced mode, we're only supposed to read
     // half of the lines of the XFB, and use that to display a field; the

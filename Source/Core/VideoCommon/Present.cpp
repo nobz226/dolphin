@@ -3,6 +3,11 @@
 
 #include "VideoCommon/Present.h"
 
+#include <cmath>
+
+#include "Core/Config/GraphicsSettings.h"
+#include "VideoCommon/BPStructs.h"
+
 #include "Common/ChunkFile.h"
 #include "Core/Config/GraphicsSettings.h"
 #include "Core/Config/MainSettings.h"
@@ -176,6 +181,12 @@ void Presenter::ViSwap(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height,
                        TimePoint presentation_time)
 {
   bool is_duplicate = FetchXFB(xfb_addr, fb_width, fb_stride, fb_height, ticks);
+
+  // A field read on its own has a stride of two lines. It is the lower field
+  // when it starts one line into a buffer the game drew as one full frame.
+  m_lower_field_alone = Config::Get(Config::GFX_HACK_FIELD_DRAWN_VIDEO) &&
+                        fb_stride == fb_width * 4 &&
+                        XFBWasSingleFullCopy(xfb_addr - fb_width * 2, fb_height * 2);
 
   PresentInfo present_info{
       .present_count = m_present_count++,
@@ -967,6 +978,13 @@ void Presenter::Present(PresentInfo* present_info)
     // Adjust the source rectangle instead of using an oversized viewport to render the XFB.
     MathUtil::Rectangle<int> render_target_rc = GetTargetRectangle();
     MathUtil::Rectangle<int> render_source_rc = AdjustForCustomCrop(m_xfb_rect);
+    if (m_lower_field_alone && render_source_rc.GetHeight() > 0)
+    {
+      const int half_line = static_cast<int>(std::lround(
+          render_target_rc.GetHeight() / (2.0 * render_source_rc.GetHeight())));
+      render_target_rc.top += half_line;
+      render_target_rc.bottom += half_line;
+    }
     AdjustRectanglesToFitBounds(&render_target_rc, &render_source_rc, m_backbuffer_width,
                                 m_backbuffer_height);
     RenderXFBToScreen(render_target_rc, m_xfb_entry->texture.get(), render_source_rc);

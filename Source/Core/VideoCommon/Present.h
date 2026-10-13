@@ -156,6 +156,9 @@ private:
   RcTcacheEntry m_xfb_entry;
   // Internal resolution multiplier scaled XFB size
   MathUtil::Rectangle<int> m_xfb_rect{0, 0, MAX_XFB_WIDTH, MAX_XFB_HEIGHT};
+  // Field-drawn video fix: the frame is the second (lower) field shown on its own,
+  // drawn half a field line lower so the two fields line up instead of bobbing.
+  bool m_lower_field_alone = false;
 
   // Tracking of XFB textures so we don't render duplicate frames.
   u64 m_last_xfb_id = std::numeric_limits<u64>::max();
