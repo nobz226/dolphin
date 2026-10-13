@@ -674,7 +674,7 @@ bool retro_load_game(const struct retro_game_info* game)
     std::string game_id;
     if (auto volume = DiscIO::CreateVolume(Libretro::VFile::NormalizePath(game->path)))
       game_id = volume->GetGameID();
-    ShaderCache::SetGameIDHint(game_id);
+    VideoCommon::ShaderCache::SetGameIDHint(game_id);
   }
 
 #ifdef HAS_METAL
