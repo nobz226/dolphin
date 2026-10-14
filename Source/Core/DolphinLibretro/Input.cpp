@@ -1089,10 +1089,19 @@ void UpdateWiimoteMappings(const WiimoteUpdateFlags& f, unsigned port, unsigned 
           if (swingModifier == MODIFIER_NO_MODIFIER && irMod != swingModifier)
             swingModifier = "!" + irMod;
 
-          wmSwing->SetControlExpression(0, wrap(swingModifier, "`" + devAnalog + ":Y1-`"));  // Up
-          wmSwing->SetControlExpression(1, wrap(swingModifier, "`" + devAnalog + ":Y1+`"));  // Down
-          wmSwing->SetControlExpression(2, wrap(swingModifier, "`" + devAnalog + ":X1-`"));  // Left
-          wmSwing->SetControlExpression(3, wrap(swingModifier, "`" + devAnalog + ":X1+`"));  // Right
+          // Swing lock: while that button is held the stick only points
+          const std::string swingLock =
+            Libretro::Options::GetCached<std::string>(Libretro::Options::wiimote::SWING_LOCK, MODIFIER_DISABLED_CONTROL);
+          const auto lock = [&swingLock](const std::string& expr) {
+            if (swingLock == MODIFIER_DISABLED_CONTROL || swingLock.empty())
+              return expr;
+            return "!" + swingLock + " & " + expr;
+          };
+
+          wmSwing->SetControlExpression(0, lock(wrap(swingModifier, "`" + devAnalog + ":Y1-`")));  // Up
+          wmSwing->SetControlExpression(1, lock(wrap(swingModifier, "`" + devAnalog + ":Y1+`")));  // Down
+          wmSwing->SetControlExpression(2, lock(wrap(swingModifier, "`" + devAnalog + ":X1-`")));  // Left
+          wmSwing->SetControlExpression(3, lock(wrap(swingModifier, "`" + devAnalog + ":X1+`")));  // Right
         }
         else
         {

@@ -1774,6 +1774,21 @@ static struct retro_core_option_v2_definition option_defs[] = {
       { "180", nullptr },
       { nullptr, nullptr }
     },
+  {
+    Libretro::Options::wiimote::SWING_LOCK,
+    "Wiimote Swing > Swing Lock Button",
+    "Swing Lock Button",
+    "While this button is held, the right thumbstick only moves the pointer and never swings. For games where the stick both swings and aims, such as Skyward Sword.",
+    nullptr,
+    CATEGORY_WIIMOTE,
+    {
+      { "Disabled", nullptr },
+      { "L3", nullptr }, { "R3", nullptr }, { "L", "L1" }, { "R", "R1" },
+      { "L2", nullptr }, { "R2", nullptr },
+      { nullptr, nullptr }
+    },
+    "Disabled"
+  },
     "90"
   },
 
