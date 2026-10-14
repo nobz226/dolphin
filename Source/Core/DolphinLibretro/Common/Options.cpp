@@ -1958,6 +1958,20 @@ static struct retro_core_option_v2_definition option_defs[] = {
     "disabled"
   },
   {
+    Libretro::Options::wiimote::IR_AUTO_HIDE,
+    "Wiimote IR > Wiimote IR Auto-Hide",
+    "Wiimote IR Auto-Hide",
+    "Hide the Wiimote pointer when the right thumbstick stops moving it. Turn off to keep the cursor on screen where you leave it (useful with relative mode for aiming).",
+    nullptr,
+    CATEGORY_WIIMOTE,
+    {
+      { "enabled",  nullptr },
+      { "disabled", nullptr },
+      { nullptr, nullptr }
+    },
+    "enabled"
+  },
+  {
     Libretro::Options::wiimote::MP3_CONTROLS,
     "Wiimote > Metroid Prime 3 Controller Aiming",
     "Metroid Prime 3 Controller Aiming",

@@ -1106,7 +1106,8 @@ void UpdateWiimoteMappings(const WiimoteUpdateFlags& f, unsigned port, unsigned 
         static_cast<ControllerEmu::NumericSetting<bool>*>(wmIR->numeric_settings[4].get())
           ->SetValue(irMode == 0);                                    // Relative input
         static_cast<ControllerEmu::NumericSetting<bool>*>(wmIR->numeric_settings[5].get())
-          ->SetValue(true);                                           // Auto hide
+          ->SetValue(Libretro::Options::GetCached<bool>(
+            Libretro::Options::wiimote::IR_AUTO_HIDE, true));         // Auto hide
 
         // Swing‑related updates
         ControllerEmu::ControlGroup* wmSwing = wm->GetWiimoteGroup(WiimoteEmu::WiimoteGroup::Swing);

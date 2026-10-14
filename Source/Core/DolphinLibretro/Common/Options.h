@@ -317,6 +317,7 @@ namespace wiimote {
   constexpr const char TILT_TOGGLE[] = "dolphin_tilt_toggle";
   constexpr const char NUNCHUK_SWING_BUTTON[] = "dolphin_nunchuk_swing_button";
   constexpr const char IR_PASSTHROUGH[] = "dolphin_ir_passthrough";
+  constexpr const char IR_AUTO_HIDE[] = "dolphin_ir_auto_hide";
 
   // Metroid Prime 3: Corruption controller aiming (Core/MP3Controls)
   constexpr const char MP3_CONTROLS[] = "dolphin_mp3_controls";
