@@ -36,6 +36,8 @@ struct Input
   float look_x = 0.f;
   float look_y = 0.f;
   float move_y = 0.f;
+  float move_x = 0.f;
+  bool motion = false;  // held: the left stick works levers, handles and dials
   std::array<bool, 4> visor{};  // combat, scan, command, x-ray
   bool recentre = false;
   bool lasso = false;

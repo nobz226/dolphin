@@ -963,6 +963,8 @@ static void UpdateMP3Controls()
   in.look_x = axis(RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X);
   in.look_y = axis(RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_Y);
   in.move_y = axis(RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_Y);
+  in.move_x = axis(RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X);
+  in.motion = button(RETRO_DEVICE_ID_JOYPAD_A);
   in.visor = {button(RETRO_DEVICE_ID_JOYPAD_UP), button(RETRO_DEVICE_ID_JOYPAD_RIGHT),
               button(RETRO_DEVICE_ID_JOYPAD_LEFT), button(RETRO_DEVICE_ID_JOYPAD_DOWN)};
   in.recentre = false;  // A is the motion button

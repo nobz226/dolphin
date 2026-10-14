@@ -36,6 +36,10 @@ constexpr u32 kVarLassoState = 0x80684800;
 constexpr u32 kVarHandX = 0x80684804;
 constexpr u32 kVarHandY = 0x80684808;
 constexpr u32 kVarTriggerGrapple = 0x8068480c;
+constexpr u32 kVarRotaryVelocity = 0x80684810;
+
+// Motion puzzles (PrimeHack's ContextSensitiveControls, standalone NTSC-U)
+constexpr u32 kMotionVf = 0x802e2508;
 
 constexpr u64 kNorionWorldId = 0x6fb8ef2a9523c343;
 constexpr u32 kRidleyFightArea = 0x16;
@@ -157,6 +161,15 @@ std::vector<Patch> BuildPatches()
 
   // Steps over bounds checking on the reticle
   add(0x80017290, 0x48000120);
+
+  // Combination locks and DNA scanners turn at kVarRotaryVelocity
+  // (lis r12 / ori r12 / lfs f1, 0(r12))
+  add(0x801fb544, Lis(12, kVarRotaryVelocity));
+  add(0x801fb54c, Ori(12, kVarRotaryVelocity));
+  add(0x801fb554, 0xc02c0000);
+  add(0x801fd764, Lis(12, kVarRotaryVelocity));
+  add(0x801fd768, Ori(12, kVarRotaryVelocity));
+  add(0x801fd76c, 0xc02c0000);
   return p;
 }
 
@@ -458,8 +471,59 @@ bool InRidleyFight(const Mem& mem, u32 state_manager)
 }
 
 // PrimeHack's run_mod_mp3
+// Levers and handles move with forward/back, dials turn with left/right,
+// while the motion button is held (PrimeHack's ContextSensitiveControls)
+void HandleMotionPuzzles(const Mem& mem, const Input& in)
+{
+  const bool push = in.motion && in.move_y < -0.5f;
+  const bool pull = in.motion && in.move_y > 0.5f;
+  float velocity = 0.f;
+  if (in.motion && in.move_x > 0.5f)
+    velocity += 0.04f;
+  if (in.motion && in.move_x < -0.5f)
+    velocity -= 0.04f;
+  mem.WF(velocity, kVarRotaryVelocity);
+
+  const u32 object_list = mem.Chain(kStateManager, {0, 0x1010, 0});
+  if (object_list == 0)
+    return;
+  u32 it = object_list + 4;
+  for (int i = 0; i < 2048; i++)
+  {
+    const u32 entity = mem.R32(it);
+    if (Mem::Valid(entity, 0x158))
+    {
+      const u32 flags = mem.R32(entity + 0x38);
+      bool process = (flags & 0x20000000) && ((flags >> 8) & 0x2000) == 0;
+      process |= ((flags >> 8) & 0x1000) != 0;
+      if (process)
+      {
+        const u32 vft = mem.R32(entity);
+        const u32 accept = mem.R32(vft + 0xc);
+        if (accept == kMotionVf && mem.R32(entity + 0x14c) == 3)
+        {
+          float step = mem.RF(entity + 0x154);
+          if (!std::isfinite(step))
+            step = 0.f;
+          if (push)
+            step += 0.05f;
+          if (pull)
+            step -= 0.05f;
+          mem.WF(std::clamp(step, 0.f, 1.f), entity + 0x154);
+        }
+      }
+    }
+    const u16 next = mem.R16(it + 6);
+    if (next == 0xffff)
+      break;
+    it = object_list + 4 + next * 8;
+  }
+}
+
 void RunGame(const Mem& mem, const Input& in, const Settings& st)
 {
+  HandleMotionPuzzles(mem, in);
+
   // The lasso animation patches would fight Grapple Voltage (pushing the stick)
   s.group_on[LASSO] = true;
   s.group_on[LASSO_ANIM] = !(in.move_y < -0.5f || in.move_y > 0.5f);
