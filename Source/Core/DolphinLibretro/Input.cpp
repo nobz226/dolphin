@@ -247,7 +247,7 @@ static struct retro_input_descriptor descWiimoteNunchukMP3[] = {
     {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R, "Missile"},
     {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X, "Hypermode (+)"},
     {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L, "Visor Wheel (-)"},
-    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A, "Grapple Lasso"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A, "Recentre View"},
     {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP, "Combat Visor"},
     {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "Scan Visor"},
     {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT, "Command Visor"},
@@ -255,7 +255,7 @@ static struct retro_input_descriptor descWiimoteNunchukMP3[] = {
     {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START, "1"},
     {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT, "2"},
     {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L3, "Shake"},
-    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R3, "Recentre View"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R3, "Grapple Lasso"},
     {0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X,
     "Move X"},
     {0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_Y,
@@ -946,8 +946,8 @@ static void UpdateMP3Controls()
   in.move_y = axis(RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_Y);
   in.visor = {button(RETRO_DEVICE_ID_JOYPAD_UP), button(RETRO_DEVICE_ID_JOYPAD_RIGHT),
               button(RETRO_DEVICE_ID_JOYPAD_LEFT), button(RETRO_DEVICE_ID_JOYPAD_DOWN)};
-  in.recentre = button(RETRO_DEVICE_ID_JOYPAD_R3);
-  in.lasso = button(RETRO_DEVICE_ID_JOYPAD_A);
+  in.recentre = button(RETRO_DEVICE_ID_JOYPAD_A);
+  in.lasso = button(RETRO_DEVICE_ID_JOYPAD_R3);
   MP3Controls::SetInput(in);
 }
 
