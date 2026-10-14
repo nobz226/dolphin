@@ -1781,11 +1781,13 @@ void retro_set_controller_port_device_wii(unsigned port, unsigned device)
     f.upright = true;
     // Raised at setup so the option applies on a cold boot.
     f.irPassthrough = true;
-    Libretro::Input::UpdateWiimoteMappings(f, port, device);
 
+    // Before the mapping update, so a layout it applies (Metroid Prime 3) has the last word
     wmShake->SetControlExpression(0, bindMouse("R2", devMouse + ":Middle"));  // Wiimote shake X
     wmShake->SetControlExpression(1, bindMouse("R2", devMouse + ":Middle"));  // Wiimote shake Y
     wmShake->SetControlExpression(2, bindMouse("R2", devMouse + ":Middle"));  // Wiimote shake Z
+
+    Libretro::Input::UpdateWiimoteMappings(f, port, device);
   }
 
   ControllerEmu::ControlGroup* wmOptions = wm->GetWiimoteGroup(WiimoteGroup::Options);
