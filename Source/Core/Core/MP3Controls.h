@@ -27,6 +27,7 @@ struct Settings
   float turn_speed = 15.f;  // PrimeHack's "Camera Sensitivity"
   bool invert_y = false;
   bool smooth = true;       // response curve for fine aiming
+  bool weapon_sway = false; // let the arm cannon trail the camera, as the game does
 };
 
 // Read once per frame by the frontend, all axes in -1..1 (y down)

@@ -322,7 +322,7 @@ void HandleCursor(const Mem& mem, u32 cursor, const Input& in, const Settings& s
     return;
   if (locked)
   {
-    s.group_on[GUN] = true;
+    s.group_on[GUN] = !st.weapon_sway;
     mem.W32(0, cursor + 0x9c);
     mem.W32(0, cursor + 0x15c);
     return;
