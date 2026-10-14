@@ -1895,6 +1895,8 @@ static struct retro_core_option_v2_definition option_defs[] = {
       { "enabled", nullptr },
       { nullptr, nullptr }
     },
+    "disabled"
+  },
   {
     Libretro::Options::wiimote::NUNCHUK_SWING_BUTTON,
     "Wiimote Swing > Nunchuk Swing Button",
@@ -1910,8 +1912,6 @@ static struct retro_core_option_v2_definition option_defs[] = {
       { nullptr, nullptr }
     },
     "Disabled"
-  },
-    "disabled"
   },
 
   // ========== RA only ==========
