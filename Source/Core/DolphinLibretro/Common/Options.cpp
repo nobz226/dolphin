@@ -1791,6 +1791,112 @@ static struct retro_core_option_v2_definition option_defs[] = {
     },
     "Disabled"
   },
+  {
+    Libretro::Options::wiimote::SWING_DEADZONE,
+    "Wiimote Swing > Swing Dead Zone",
+    "Swing Dead Zone",
+    "How far the right thumbstick must be pushed before it swings (percent). High values let smaller pushes point without swinging.",
+    nullptr,
+    CATEGORY_WIIMOTE,
+    {
+      { "0", nullptr }, { "5", nullptr }, { "10", nullptr }, { "15", nullptr }, { "20", nullptr }, { "25", nullptr },
+      { "30", nullptr }, { "35", nullptr }, { "40", nullptr }, { "45", nullptr }, { "50", nullptr }, { "55", nullptr },
+      { "60", nullptr }, { "65", nullptr }, { "70", nullptr }, { "75", nullptr }, { "80", nullptr }, { "85", nullptr },
+      { "90", "90 (Default)" }, { "95", nullptr },
+      { nullptr, nullptr }
+    },
+    "90"
+  },
+  {
+    Libretro::Options::wiimote::SWING_SPEED,
+    "Wiimote Swing > Swing Speed",
+    "Swing Speed",
+    "Peak speed of an emulated swing (m/s). Lower values can reduce accidental stabs and shield bashes in Skyward Sword.",
+    nullptr,
+    CATEGORY_WIIMOTE,
+    {
+      { "4", nullptr }, { "6", nullptr }, { "8", nullptr }, { "10", nullptr }, { "12", nullptr }, { "14", nullptr },
+      { "16", "16 (Default)" }, { "20", nullptr }, { "24", nullptr }, { "30", nullptr }, { "40", nullptr },
+      { nullptr, nullptr }
+    },
+    "16"
+  },
+  {
+    Libretro::Options::wiimote::SWING_RETURN_SPEED,
+    "Wiimote Swing > Swing Return Speed",
+    "Swing Return Speed",
+    "Speed of the remote's return to rest after a swing (m/s). Low values keep the return from counting as a second swing.",
+    nullptr,
+    CATEGORY_WIIMOTE,
+    {
+      { "1", nullptr }, { "2", "2 (Default)" }, { "3", nullptr }, { "4", nullptr }, { "6", nullptr }, { "8", nullptr },
+      { "12", nullptr }, { "16", nullptr },
+      { nullptr, nullptr }
+    },
+    "2"
+  },
+  {
+    Libretro::Options::wiimote::SWING_FORWARD_BUTTON,
+    "Wiimote Swing > Thrust Button",
+    "Thrust Button",
+    "Button that thrusts the Wiimote forward (a stab in Skyward Sword). Its other default binding is removed.",
+    nullptr,
+    CATEGORY_WIIMOTE,
+    {
+      { "Disabled", nullptr },
+      { "L3", nullptr }, { "R3", nullptr }, { "L", "L1" }, { "R", "R1" },
+      { "L2", nullptr }, { "R2", nullptr },
+      { "Up", "D-pad Up" }, { "Down", "D-pad Down" }, { "Left", "D-pad Left" }, { "Right", "D-pad Right" },
+      { nullptr, nullptr }
+    },
+    "Disabled"
+  },
+  {
+    Libretro::Options::wiimote::WIIMOTE_SHAKE_BUTTON,
+    "Wiimote Swing > Wiimote Shake Button",
+    "Wiimote Shake Button",
+    "Button that shakes the Wiimote.",
+    nullptr,
+    CATEGORY_WIIMOTE,
+    {
+      { "R2", "R2 (Default)" },
+      { "Disabled", nullptr },
+      { "L3", nullptr }, { "R3", nullptr }, { "L", "L1" }, { "R", "R1" }, { "L2", nullptr },
+      { "Up", "D-pad Up" }, { "Down", "D-pad Down" }, { "Left", "D-pad Left" }, { "Right", "D-pad Right" },
+      { nullptr, nullptr }
+    },
+    "R2"
+  },
+  {
+    Libretro::Options::wiimote::TILT_MODIFIER,
+    "Wiimote Swing > Tilt Mode Button",
+    "Tilt Mode Button",
+    "While held (or toggled on), the right thumbstick tilts and rolls the Wiimote instead of swinging and pointing: for flying, the Beetle, minecarts, balancing and swimming. Its other default binding is removed.",
+    nullptr,
+    CATEGORY_WIIMOTE,
+    {
+      { "Disabled", nullptr },
+      { "L3", nullptr }, { "R3", nullptr }, { "L", "L1" }, { "R", "R1" },
+      { "L2", nullptr }, { "R2", nullptr },
+      { "Up", "D-pad Up" }, { "Down", "D-pad Down" }, { "Left", "D-pad Left" }, { "Right", "D-pad Right" },
+      { nullptr, nullptr }
+    },
+    "Disabled"
+  },
+  {
+    Libretro::Options::wiimote::TILT_TOGGLE,
+    "Wiimote Swing > Tilt Mode Toggle",
+    "Tilt Mode Toggle",
+    "Press the Tilt Mode Button once to turn tilt mode on and again to turn it off, instead of holding it.",
+    nullptr,
+    CATEGORY_WIIMOTE,
+    {
+      { "disabled", nullptr },
+      { "enabled", nullptr },
+      { nullptr, nullptr }
+    },
+    "disabled"
+  },
 
   // ========== RA only ==========
   {

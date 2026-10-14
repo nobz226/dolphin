@@ -393,8 +393,15 @@ void retro_run(void)
     flags.irDeadzone = Libretro::Options::IsUpdated(Libretro::Options::wiimote::IR_DEADZONE);
     flags.irModifier = Libretro::Options::IsUpdated(Libretro::Options::wiimote::IR_MODIFIER);
     flags.swingModifier = Libretro::Options::IsUpdated(Libretro::Options::wiimote::SWING_MODIFIER) ||
-                          Libretro::Options::IsUpdated(Libretro::Options::wiimote::SWING_LOCK);
-    flags.swingAngle = Libretro::Options::IsUpdated(Libretro::Options::wiimote::SWING_ANGLE);
+                          Libretro::Options::IsUpdated(Libretro::Options::wiimote::SWING_LOCK) ||
+                          Libretro::Options::IsUpdated(Libretro::Options::wiimote::SWING_FORWARD_BUTTON) ||
+                          Libretro::Options::IsUpdated(Libretro::Options::wiimote::WIIMOTE_SHAKE_BUTTON) ||
+                          Libretro::Options::IsUpdated(Libretro::Options::wiimote::TILT_MODIFIER) ||
+                          Libretro::Options::IsUpdated(Libretro::Options::wiimote::TILT_TOGGLE);
+    flags.swingAngle = Libretro::Options::IsUpdated(Libretro::Options::wiimote::SWING_ANGLE) ||
+                       Libretro::Options::IsUpdated(Libretro::Options::wiimote::SWING_DEADZONE) ||
+                       Libretro::Options::IsUpdated(Libretro::Options::wiimote::SWING_SPEED) ||
+                       Libretro::Options::IsUpdated(Libretro::Options::wiimote::SWING_RETURN_SPEED);
     flags.sideways = Libretro::Options::IsUpdated(Libretro::Options::wiimote::HOTKEY_SIDEWAYS_TOGGLE);
     flags.upright = Libretro::Options::IsUpdated(Libretro::Options::wiimote::HOTKEY_UPRIGHT_TOGGLE);
     flags.irPassthrough = Libretro::Options::IsUpdated(Libretro::Options::wiimote::IR_PASSTHROUGH);

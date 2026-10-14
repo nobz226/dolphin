@@ -1085,12 +1085,23 @@ void UpdateWiimoteMappings(const WiimoteUpdateFlags& f, unsigned port, unsigned 
 
       if (irMode == 0 || irMode == 1)
       {
+        // Tilt mode: while its button is held (or toggled on) the stick only tilts
+        const std::string tiltBtn =
+          Libretro::Options::GetCached<std::string>(Libretro::Options::wiimote::TILT_MODIFIER, MODIFIER_DISABLED_CONTROL);
+        const bool tiltOn = !tiltBtn.empty() && tiltBtn != MODIFIER_DISABLED_CONTROL;
+        const std::string tiltMod =
+          !tiltOn ? std::string() :
+          Libretro::Options::GetCached<bool>(Libretro::Options::wiimote::TILT_TOGGLE) ? "toggle(" + tiltBtn + ")" : tiltBtn;
+        const auto notTilt = [&](const std::string& expr) {
+          return tiltOn ? "!" + tiltMod + " & (" + expr + ")" : expr;
+        };
+
         // Set right stick to control the IR
         std::string irMod = Libretro::Options::GetCached<std::string>(Libretro::Options::wiimote::IR_MODIFIER);
-        wmIR->SetControlExpression(0, wrap(irMod, "`" + devAnalog + ":Y1-`")); // Up
-        wmIR->SetControlExpression(1, wrap(irMod, "`" + devAnalog + ":Y1+`")); // Down
-        wmIR->SetControlExpression(2, wrap(irMod, "`" + devAnalog + ":X1-`")); // Left
-        wmIR->SetControlExpression(3, wrap(irMod, "`" + devAnalog + ":X1+`")); // Right
+        wmIR->SetControlExpression(0, notTilt(wrap(irMod, "`" + devAnalog + ":Y1-`"))); // Up
+        wmIR->SetControlExpression(1, notTilt(wrap(irMod, "`" + devAnalog + ":Y1+`"))); // Down
+        wmIR->SetControlExpression(2, notTilt(wrap(irMod, "`" + devAnalog + ":X1-`"))); // Left
+        wmIR->SetControlExpression(3, notTilt(wrap(irMod, "`" + devAnalog + ":X1+`"))); // Right
 
         static_cast<ControllerEmu::NumericSetting<bool>*>(wmIR->numeric_settings[4].get())
           ->SetValue(irMode == 0);                                    // Relative input
@@ -1112,16 +1123,58 @@ void UpdateWiimoteMappings(const WiimoteUpdateFlags& f, unsigned port, unsigned 
           // Swing lock: while that button is held the stick only points
           const std::string swingLock =
             Libretro::Options::GetCached<std::string>(Libretro::Options::wiimote::SWING_LOCK, MODIFIER_DISABLED_CONTROL);
-          const auto lock = [&swingLock](const std::string& expr) {
+          const auto lock = [&swingLock, &notTilt](const std::string& expr) {
             if (swingLock == MODIFIER_DISABLED_CONTROL || swingLock.empty())
-              return expr;
-            return "!" + swingLock + " & " + expr;
+              return notTilt(expr);
+            return notTilt("!" + swingLock + " & " + expr);
           };
 
           wmSwing->SetControlExpression(0, lock(wrap(swingModifier, "`" + devAnalog + ":Y1-`")));  // Up
           wmSwing->SetControlExpression(1, lock(wrap(swingModifier, "`" + devAnalog + ":Y1+`")));  // Down
           wmSwing->SetControlExpression(2, lock(wrap(swingModifier, "`" + devAnalog + ":X1-`")));  // Left
           wmSwing->SetControlExpression(3, lock(wrap(swingModifier, "`" + devAnalog + ":X1+`")));  // Right
+        }
+
+        // Thrust, Wiimote shake and tilt mode buttons. A button given one of these
+        // jobs loses its default binding (Home on R3, a D-pad direction).
+        {
+          const std::string fwdBtn = Libretro::Options::GetCached<std::string>(
+            Libretro::Options::wiimote::SWING_FORWARD_BUTTON, MODIFIER_DISABLED_CONTROL);
+          const std::string shakeBtn = Libretro::Options::GetCached<std::string>(
+            Libretro::Options::wiimote::WIIMOTE_SHAKE_BUTTON, "R2");
+          const bool fwdOn = !fwdBtn.empty() && fwdBtn != MODIFIER_DISABLED_CONTROL;
+          const bool shakeOn = !shakeBtn.empty() && shakeBtn != MODIFIER_DISABLED_CONTROL;
+
+          wmSwing->SetControlExpression(4, fwdOn ? fwdBtn : "");  // Forward: thrust
+          wmSwing->SetControlExpression(5, "");                   // Backward
+
+          ControllerEmu::ControlGroup* wmShake = wm->GetWiimoteGroup(WiimoteEmu::WiimoteGroup::Shake);
+          const std::string devMouse = Libretro::Input::GetQualifiedName(port, RETRO_DEVICE_MOUSE);
+          const std::string shakeExpr =
+            !shakeOn ? std::string() :
+            shakeBtn == "R2" ? "R2 | `" + devMouse + ":Middle`" : shakeBtn;
+          for (int i = 0; i < 3; i++)
+            wmShake->SetControlExpression(i, shakeExpr);
+
+          if (tiltOn)
+          {
+            ControllerEmu::ControlGroup* wmTilt = wm->GetWiimoteGroup(WiimoteEmu::WiimoteGroup::Tilt);
+            wmTilt->SetControlExpression(0, tiltMod + " & `" + devAnalog + ":Y1-`");  // Forward
+            wmTilt->SetControlExpression(1, tiltMod + " & `" + devAnalog + ":Y1+`");  // Backward
+            wmTilt->SetControlExpression(2, tiltMod + " & `" + devAnalog + ":X1-`");  // Left
+            wmTilt->SetControlExpression(3, tiltMod + " & `" + devAnalog + ":X1+`");  // Right
+          }
+
+          const auto used = [&](const std::string& b) {
+            return (fwdOn && fwdBtn == b) || (shakeOn && shakeBtn == b && b != "R2") ||
+                   (tiltOn && tiltBtn == b);
+          };
+          ControllerEmu::ControlGroup* wmButtons = wm->GetWiimoteGroup(WiimoteEmu::WiimoteGroup::Buttons);
+          ControllerEmu::ControlGroup* wmDPad = wm->GetWiimoteGroup(WiimoteEmu::WiimoteGroup::DPad);
+          wmButtons->SetControlExpression(6, used("R3") ? "" : "R3");  // Home
+          const char* dirs[] = {"Up", "Down", "Left", "Right"};
+          for (int i = 0; i < 4; i++)
+            wmDPad->SetControlExpression(i, used(dirs[i]) ? "" : dirs[i]);
         }
         else
         {
@@ -1201,9 +1254,16 @@ void UpdateWiimoteMappings(const WiimoteUpdateFlags& f, unsigned port, unsigned 
   {
     ControllerEmu::ControlGroup* wmSwing = wm->GetWiimoteGroup(WiimoteEmu::WiimoteGroup::Swing);
 
-    const int swingAngle = Libretro::Options::GetCached<int>(Libretro::Options::wiimote::SWING_ANGLE);
-    static_cast<ControllerEmu::NumericSetting<double>*>(wmSwing->numeric_settings[0].get())
-      ->SetValue(swingAngle);                                           // Swing/Angle
+    // numeric_settings: 0 dead zone, 1 distance, 2 speed, 3 return speed, 4 angle.
+    // (Swing Angle used to land on the dead zone; that now has its own option,
+    // defaulting to the 90% every game had.)
+    const auto set = [wmSwing](int i, double v) {
+      static_cast<ControllerEmu::NumericSetting<double>*>(wmSwing->numeric_settings[i].get())->SetValue(v);
+    };
+    set(0, Libretro::Options::GetCached<int>(Libretro::Options::wiimote::SWING_DEADZONE, 90));
+    set(2, Libretro::Options::GetCached<int>(Libretro::Options::wiimote::SWING_SPEED, 16));
+    set(3, Libretro::Options::GetCached<int>(Libretro::Options::wiimote::SWING_RETURN_SPEED, 2));
+    set(4, Libretro::Options::GetCached<int>(Libretro::Options::wiimote::SWING_ANGLE, 90));
   }
 
   ControllerEmu::ControlGroup* wmHotkeys = wm->GetWiimoteGroup(WiimoteEmu::WiimoteGroup::Hotkeys);
