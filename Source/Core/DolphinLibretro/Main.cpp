@@ -387,7 +387,8 @@ void retro_run(void)
   if (system.IsWii())
   {
     flags.irMode  = Libretro::Options::IsUpdated(Libretro::Options::wiimote::IR_MODE) ||
-                    Libretro::Options::IsUpdated(Libretro::Options::wiimote::IR_AUTO_HIDE);
+                    Libretro::Options::IsUpdated(Libretro::Options::wiimote::IR_AUTO_HIDE) ||
+                    Libretro::Options::IsUpdated(Libretro::Options::wiimote::IR_RECENTER_BUTTON);
     flags.irOffset = Libretro::Options::IsUpdated(Libretro::Options::wiimote::IR_OFFSET);
     flags.irYaw = Libretro::Options::IsUpdated(Libretro::Options::wiimote::IR_YAW);
     flags.irPitch = Libretro::Options::IsUpdated(Libretro::Options::wiimote::IR_PITCH);

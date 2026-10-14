@@ -1972,6 +1972,22 @@ static struct retro_core_option_v2_definition option_defs[] = {
     "enabled"
   },
   {
+    Libretro::Options::wiimote::IR_RECENTER_BUTTON,
+    "Wiimote IR > Wiimote IR Recenter Button",
+    "Wiimote IR Recenter Button",
+    "In relative mode, this button snaps the pointer back to the centre of the screen. The button keeps its normal job too (for example D-pad Down, which is the recalibrate button in Skyward Sword).",
+    nullptr,
+    CATEGORY_WIIMOTE,
+    {
+      { "Disabled", nullptr },
+      { "L3", nullptr }, { "R3", nullptr }, { "L", "L1" }, { "R", "R1" },
+      { "L2", nullptr }, { "R2", nullptr },
+      { "Up", "D-pad Up" }, { "Down", "D-pad Down" }, { "Left", "D-pad Left" }, { "Right", "D-pad Right" },
+      { nullptr, nullptr }
+    },
+    "Disabled"
+  },
+  {
     Libretro::Options::wiimote::MP3_CONTROLS,
     "Wiimote > Metroid Prime 3 Controller Aiming",
     "Metroid Prime 3 Controller Aiming",

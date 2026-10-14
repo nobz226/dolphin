@@ -1103,6 +1103,11 @@ void UpdateWiimoteMappings(const WiimoteUpdateFlags& f, unsigned port, unsigned 
         wmIR->SetControlExpression(2, notTilt(wrap(irMod, "`" + devAnalog + ":X1-`"))); // Left
         wmIR->SetControlExpression(3, notTilt(wrap(irMod, "`" + devAnalog + ":X1+`"))); // Right
 
+        const std::string recenterBtn = Libretro::Options::GetCached<std::string>(
+          Libretro::Options::wiimote::IR_RECENTER_BUTTON, MODIFIER_DISABLED_CONTROL);
+        wmIR->SetControlExpression(5, (recenterBtn.empty() || recenterBtn == MODIFIER_DISABLED_CONTROL) ?
+                                        "" : recenterBtn);  // Recenter
+
         static_cast<ControllerEmu::NumericSetting<bool>*>(wmIR->numeric_settings[4].get())
           ->SetValue(irMode == 0);                                    // Relative input
         static_cast<ControllerEmu::NumericSetting<bool>*>(wmIR->numeric_settings[5].get())
