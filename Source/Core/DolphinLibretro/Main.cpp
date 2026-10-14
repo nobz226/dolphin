@@ -397,6 +397,7 @@ void retro_run(void)
     flags.sideways = Libretro::Options::IsUpdated(Libretro::Options::wiimote::HOTKEY_SIDEWAYS_TOGGLE);
     flags.upright = Libretro::Options::IsUpdated(Libretro::Options::wiimote::HOTKEY_UPRIGHT_TOGGLE);
     flags.irPassthrough = Libretro::Options::IsUpdated(Libretro::Options::wiimote::IR_PASSTHROUGH);
+    flags.mp3Controls = Libretro::Options::IsUpdated(Libretro::Options::wiimote::MP3_CONTROLS);
   }
 
   flags.rumble = Libretro::Options::IsUpdated(Libretro::Options::sysconf::ENABLE_RUMBLE);

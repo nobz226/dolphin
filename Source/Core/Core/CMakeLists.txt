@@ -508,6 +508,8 @@ add_library(core
   NetPlayServer.h
   NetworkCaptureLogger.cpp
   NetworkCaptureLogger.h
+  MP3Controls.cpp
+  MP3Controls.h
   PatchEngine.cpp
   PatchEngine.h
   PowerPC/BreakPoints.cpp

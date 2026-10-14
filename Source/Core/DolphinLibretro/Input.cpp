@@ -27,6 +27,7 @@
 #include "Core/HW/WiimoteReal/WiimoteReal.h"
 #include "Core/HW/SI/SI.h"
 #include "Core/HW/SI/SI_Device.h"
+#include "Core/MP3Controls.h"
 #include "Core/IOS/USB/Bluetooth/BTReal.h"
 #include "Core/Host.h"
 #include "Core/System.h"
@@ -234,6 +235,35 @@ static struct retro_input_descriptor descWiimoteSideways[] = {
     "Tilt Left/Right"},
     {0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_Y,
     "Tilt Forward/Backward"},
+    {0},
+};
+
+// Metroid Prime 3 Controller Aiming (dolphin_mp3_controls)
+static struct retro_input_descriptor descWiimoteNunchukMP3[] = {
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2, "Fire (A)"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2, "Lock-On (Z)"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B, "Jump (B)"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y, "Morph Ball (C)"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R, "Missile"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X, "Hypermode (+)"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L, "Visor Wheel (-)"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A, "Grapple Lasso"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP, "Combat Visor"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "Scan Visor"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT, "Command Visor"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN, "X-Ray Visor"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START, "1"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT, "2"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L3, "Shake"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R3, "Recentre View"},
+    {0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X,
+    "Move X"},
+    {0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_Y,
+    "Move Y"},
+    {0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X,
+    "Look X"},
+    {0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_Y,
+    "Look Y"},
     {0},
 };
 
@@ -709,6 +739,7 @@ void Shutdown()
     sensor_enabled[i][SENSOR_GYRO] = false;
   }
 
+  MP3Controls::Shutdown();
   Keyboard::Shutdown();
   Pad::Shutdown();
   g_controller_interface.Shutdown();
@@ -834,6 +865,92 @@ static int GetRetroButtonId(const std::string& name)
   return -1;
 }
 
+// Metroid Prime 3 Controller Aiming: on for port 1 as a Wiimote + Nunchuk
+static bool MP3ControlsOn(unsigned port)
+{
+  return port == 0 &&
+         Libretro::Options::GetCached<bool>(Libretro::Options::wiimote::MP3_CONTROLS) &&
+         wiimote_base_device(input_types[0]) == RETRO_DEVICE_WIIMOTE_NC;
+}
+
+// The Corruption layout. The pointer stays still at the centre of the screen:
+// Core/MP3Controls turns the camera and moves the cursor itself.
+static void ApplyMP3Mapping(WiimoteEmu::Wiimote* wm)
+{
+  using namespace WiimoteEmu;
+  ControllerEmu::ControlGroup* wmButtons = wm->GetWiimoteGroup(WiimoteGroup::Buttons);
+  ControllerEmu::ControlGroup* wmDPad = wm->GetWiimoteGroup(WiimoteGroup::DPad);
+  ControllerEmu::ControlGroup* wmShake = wm->GetWiimoteGroup(WiimoteGroup::Shake);
+  ControllerEmu::ControlGroup* wmSwing = wm->GetWiimoteGroup(WiimoteGroup::Swing);
+  ControllerEmu::ControlGroup* wmIR = wm->GetWiimoteGroup(WiimoteGroup::Point);
+  ControllerEmu::ControlGroup* ncButtons = wm->GetNunchukGroup(NunchukGroup::Buttons);
+  ControllerEmu::ControlGroup* ncShake = wm->GetNunchukGroup(NunchukGroup::Shake);
+  ControllerEmu::ControlGroup* wmHotkeys = wm->GetWiimoteGroup(WiimoteGroup::Hotkeys);
+
+  // L3 is shake here, never the sideways toggle
+  if (wmHotkeys)
+  {
+    wmHotkeys->SetControlExpression(0, "");
+    wmHotkeys->SetControlExpression(1, "");
+  }
+  wmButtons->SetControlExpression(0, "R2");      // A: fire
+  wmButtons->SetControlExpression(1, "B");       // B: jump
+  wmButtons->SetControlExpression(2, "Start");   // 1
+  wmButtons->SetControlExpression(3, "Select");  // 2
+  wmButtons->SetControlExpression(4, "L");       // -: visor wheel
+  wmButtons->SetControlExpression(5, "X");       // +: Hypermode
+  wmButtons->SetControlExpression(6, "");        // Home
+  wmDPad->SetControlExpression(0, "");
+  wmDPad->SetControlExpression(1, "R");          // D-pad down: missile
+  wmDPad->SetControlExpression(2, "");
+  wmDPad->SetControlExpression(3, "");
+  ncButtons->SetControlExpression(0, "Y");       // C: morph ball
+  ncButtons->SetControlExpression(1, "L2");      // Z: lock-on
+  for (int i = 0; i < 3; i++)
+  {
+    wmShake->SetControlExpression(i, "L3");
+    ncShake->SetControlExpression(i, "L3");
+  }
+  for (int i = 0; i < 4; i++)
+  {
+    wmSwing->SetControlExpression(i, "");
+    wmIR->SetControlExpression(i, "");
+  }
+  static_cast<ControllerEmu::NumericSetting<bool>*>(wmIR->numeric_settings[4].get())
+    ->SetValue(false);  // Relative input
+  static_cast<ControllerEmu::NumericSetting<bool>*>(wmIR->numeric_settings[5].get())
+    ->SetValue(false);  // Auto hide
+}
+
+static void UpdateMP3Controls()
+{
+  MP3Controls::Settings settings;
+  settings.enabled = MP3ControlsOn(0);
+  settings.turn_speed = static_cast<float>(
+    Libretro::Options::GetCached<int>(Libretro::Options::wiimote::MP3_TURN_SPEED, 15));
+  settings.invert_y = Libretro::Options::GetCached<bool>(Libretro::Options::wiimote::MP3_INVERT_Y);
+  settings.smooth = Libretro::Options::GetCached<std::string>(
+    Libretro::Options::wiimote::MP3_AIM_CURVE, "smooth") != "linear";
+  MP3Controls::SetSettings(settings);
+  if (!settings.enabled || !input_cb)
+    return;
+
+  const auto axis = [](unsigned index, unsigned id) {
+    return input_cb(0, RETRO_DEVICE_ANALOG, index, id) / 32768.f;
+  };
+  const auto button = [](unsigned id) { return input_cb(0, RETRO_DEVICE_JOYPAD, 0, id) != 0; };
+
+  MP3Controls::Input in;
+  in.look_x = axis(RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X);
+  in.look_y = axis(RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_Y);
+  in.move_y = axis(RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_Y);
+  in.visor = {button(RETRO_DEVICE_ID_JOYPAD_UP), button(RETRO_DEVICE_ID_JOYPAD_RIGHT),
+              button(RETRO_DEVICE_ID_JOYPAD_LEFT), button(RETRO_DEVICE_ID_JOYPAD_DOWN)};
+  in.recentre = button(RETRO_DEVICE_ID_JOYPAD_R3);
+  in.lasso = button(RETRO_DEVICE_ID_JOYPAD_A);
+  MP3Controls::SetInput(in);
+}
+
 void Update()
 {
   if (poll_cb)
@@ -851,6 +968,9 @@ void Update()
     UpdateAccelerometer(i);
     UpdateGyro(i);
   }
+
+  if (Core::System::GetInstance().IsWii())
+    UpdateMP3Controls();
 
   auto& system = Core::System::GetInstance();
   bool gcMicEnable = Libretro::Options::GetCached<bool>(Libretro::Options::sysconf_gc::ENABLE_GAMECUBE_MIC);
@@ -1091,6 +1211,18 @@ void UpdateWiimoteMappings(const WiimoteUpdateFlags& f, unsigned port, unsigned 
       wmRumble->SetControlExpression(0, "Rumble");
   }
 
+  if (MP3ControlsOn(port) && device == RETRO_DEVICE_WIIMOTE_NC)
+  {
+    ApplyMP3Mapping(wm);
+  }
+  else if (f.mp3Controls && port == 0)
+  {
+    // Turned off while playing: back to the regular layout
+    retro_set_controller_port_device_wii(port, input_types[port]);
+    UpdateInputDescriptors();
+    return;
+  }
+
   if (f.any())
   {
     wm->UpdateReferences(g_controller_interface);
@@ -1099,6 +1231,9 @@ void UpdateWiimoteMappings(const WiimoteUpdateFlags& f, unsigned port, unsigned 
     if (!saveOrLoad)
       ::Wiimote::GetConfig()->SaveConfig();
   }
+
+  if (f.mp3Controls)
+    UpdateInputDescriptors();
 }
 
 void UpdateGCMappings(const WiimoteUpdateFlags& f, unsigned port, unsigned device)
@@ -1197,7 +1332,9 @@ void UpdateInputDescriptors()
       break;
 
     case RETRO_DEVICE_WIIMOTE_NC:
-      desc = Libretro::Input::descWiimoteNunchuk;
+      desc = (i == 0 && Libretro::Options::GetCached<bool>(Libretro::Options::wiimote::MP3_CONTROLS)) ?
+               Libretro::Input::descWiimoteNunchukMP3 :
+               Libretro::Input::descWiimoteNunchuk;
       break;
 
     case RETRO_DEVICE_WIIMOTE_CC:

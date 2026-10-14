@@ -1820,6 +1820,63 @@ static struct retro_core_option_v2_definition option_defs[] = {
     },
     "disabled"
   },
+  {
+    Libretro::Options::wiimote::MP3_CONTROLS,
+    "Wiimote > Metroid Prime 3 Controller Aiming",
+    "Metroid Prime 3 Controller Aiming",
+    "Metroid Prime 3: Corruption (USA) only: the right stick turns the camera directly, like a modern shooter, instead of moving the Wii Remote pointer, so there's no turning box, acceleration or arm cannon sway. Port 1 must be a Wiimote + Nunchuk. Buttons: R2 fire, L2 lock-on, B jump, Y morph ball, R1 missile, X Hypermode (+), L visor wheel (-), D-pad visors (up combat, right scan, left command, down X-ray), A grapple lasso (tap to pull), R3 recentre the view, L3 shake. Menus, the scan visor, the visor wheel, lock-on and the Ridley fight hand control back to the game. Based on PrimeHack.",
+    nullptr,
+    CATEGORY_WIIMOTE,
+    {
+      { "disabled", nullptr },
+      { "enabled",  nullptr },
+      { nullptr, nullptr }
+    },
+    "disabled"
+  },
+  {
+    Libretro::Options::wiimote::MP3_TURN_SPEED,
+    "Wiimote > Metroid Prime 3 Turn Speed",
+    "Metroid Prime 3 Turn Speed",
+    "How fast the right stick turns the camera at full tilt. 15 is PrimeHack's default, about 190 degrees a second.",
+    nullptr,
+    CATEGORY_WIIMOTE,
+    {
+      { "5", nullptr }, { "8", nullptr }, { "10", nullptr }, { "12", nullptr },
+      { "15", "15 (Default)" }, { "18", nullptr }, { "20", nullptr }, { "25", nullptr },
+      { "30", nullptr }, { "35", nullptr }, { "40", nullptr },
+      { nullptr, nullptr }
+    },
+    "15"
+  },
+  {
+    Libretro::Options::wiimote::MP3_INVERT_Y,
+    "Wiimote > Metroid Prime 3 Invert Look",
+    "Metroid Prime 3 Invert Look",
+    "Push up to look down.",
+    nullptr,
+    CATEGORY_WIIMOTE,
+    {
+      { "disabled", nullptr },
+      { "enabled",  nullptr },
+      { nullptr, nullptr }
+    },
+    "disabled"
+  },
+  {
+    Libretro::Options::wiimote::MP3_AIM_CURVE,
+    "Wiimote > Metroid Prime 3 Aim Response",
+    "Metroid Prime 3 Aim Response",
+    "Smooth makes small stick movements finer for precise aiming and still turns at full speed at full tilt. Linear is PrimeHack's response.",
+    nullptr,
+    CATEGORY_WIIMOTE,
+    {
+      { "smooth", "Smooth" },
+      { "linear", "Linear" },
+      { nullptr, nullptr }
+    },
+    "smooth"
+  },
 
 #if defined(HAS_OPENGL) && defined(__WEBOS__)
   {

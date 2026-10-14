@@ -308,6 +308,12 @@ namespace wiimote {
   constexpr const char SWING_MODIFIER[] = "dolphin_swing_modifier";
   constexpr const char SWING_ANGLE[] = "dolphin_swing_angle";
   constexpr const char IR_PASSTHROUGH[] = "dolphin_ir_passthrough";
+
+  // Metroid Prime 3: Corruption controller aiming (Core/MP3Controls)
+  constexpr const char MP3_CONTROLS[] = "dolphin_mp3_controls";
+  constexpr const char MP3_TURN_SPEED[] = "dolphin_mp3_turn_speed";
+  constexpr const char MP3_INVERT_Y[] = "dolphin_mp3_invert_y";
+  constexpr const char MP3_AIM_CURVE[] = "dolphin_mp3_aim_curve";
 }  // namespace wiimote
 
 // ======================================================

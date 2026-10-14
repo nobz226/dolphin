@@ -43,6 +43,7 @@
 #include "Core/HW/HW.h"
 #include "Core/HW/Memmap.h"
 #include "Core/HW/Wiimote.h"
+#include "Core/MP3Controls.h"
 #include "Core/Movie.h"
 #include "Core/NetPlayProto.h"
 #include "Core/PowerPC/PowerPC.h"
@@ -171,6 +172,10 @@ void DoState(Core::System& system, PointerWrap& p)
     return;
   }
 
+  // Metroid Prime 3 controller aiming changes game code; states are saved without it
+  if (p.IsWriteMode())
+    MP3Controls::BeforeStateSave(system);
+
   // Movie must be done before the video backend, because the window is redrawn in the video backend
   // state load, and the frame number must be up-to-date.
   system.GetMovie().DoState(p);
@@ -202,6 +207,11 @@ void DoState(Core::System& system, PointerWrap& p)
 #ifdef USE_RETRO_ACHIEVEMENTS
   AchievementManager::GetInstance().DoState(p);
 #endif  // USE_RETRO_ACHIEVEMENTS
+
+  if (p.IsWriteMode())
+    MP3Controls::AfterStateSave(system);
+  else if (p.IsReadMode())
+    MP3Controls::AfterStateLoad();
 }
 
 static bool CheckIfStateLoadIsAllowed(Core::System& system)

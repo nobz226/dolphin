@@ -32,6 +32,7 @@
 #include "Core/Debugger/PPCDebugInterface.h"
 #include "Core/GeckoCode.h"
 #include "Core/GeckoCodeConfig.h"
+#include "Core/MP3Controls.h"
 #include "Core/PowerPC/MMU.h"
 #include "Core/PowerPC/PowerPC.h"
 #include "Core/System.h"
@@ -349,6 +350,7 @@ bool ApplyFramePatches(Core::System& system)
   // Run the Gecko code handler
   Gecko::RunCodeHandler(guard);
   ActionReplay::RunAllActive(guard);
+  MP3Controls::RunFrame(system);
 
   return true;
 }
