@@ -1839,7 +1839,7 @@ static struct retro_core_option_v2_definition option_defs[] = {
     Libretro::Options::wiimote::MP3_CONTROLS,
     "Wiimote > Metroid Prime 3 Controller Aiming",
     "Metroid Prime 3 Controller Aiming",
-    "Metroid Prime 3: Corruption (USA) only: the right stick turns the camera directly, like a modern shooter, instead of moving the Wii Remote pointer, so there's no turning box, acceleration or arm cannon sway. Port 1 must be a Wiimote + Nunchuk. Buttons: R2 fire, L2 lock-on, B jump, Y morph ball, R1 missile, X Hypermode (+), L visor wheel (-), D-pad visors (up combat, right scan, left command, down X-ray), R3 grapple lasso (tap to pull), A recentre the view, L3 shake. Menus, the scan visor, the visor wheel, lock-on and the Ridley fight hand control back to the game. Based on PrimeHack.",
+    "Metroid Prime 3: Corruption (USA) only: the right stick turns the camera directly, like a modern shooter, instead of moving the Wii Remote pointer, so there's no turning box, acceleration or arm cannon sway. Port 1 must be a Wiimote + Nunchuk. Buttons: R2 fire, L2 lock-on, B jump, Y morph ball, R1 missile, X Hypermode (+), L visor wheel (-), D-pad visors (up combat, right scan, left command, down X-ray), R3 grapple lasso (tap to pull), hold A + left stick for motions (up push, down pull, left/right twist: levers, handles, keys), L3 shake. Menus, the scan visor, the visor wheel, lock-on and the Ridley fight hand control back to the game. Based on PrimeHack.",
     nullptr,
     CATEGORY_WIIMOTE,
     {

@@ -247,7 +247,7 @@ static struct retro_input_descriptor descWiimoteNunchukMP3[] = {
     {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R, "Missile"},
     {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X, "Hypermode (+)"},
     {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L, "Visor Wheel (-)"},
-    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A, "Recentre View"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A, "Motion (hold + left stick)"},
     {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP, "Combat Visor"},
     {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "Scan Visor"},
     {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT, "Command Visor"},
@@ -912,10 +912,28 @@ static void ApplyMP3Mapping(WiimoteEmu::Wiimote* wm)
     ncShake->SetControlExpression(i, "L3");
   }
   for (int i = 0; i < 4; i++)
-  {
-    wmSwing->SetControlExpression(i, "");
     wmIR->SetControlExpression(i, "");
-  }
+
+  // Motion: hold A and use the left stick to push (up), pull (down) or twist
+  // (left/right) levers, handles and keys. Samus stands still meanwhile.
+  ControllerEmu::ControlGroup* wmTilt = wm->GetWiimoteGroup(WiimoteGroup::Tilt);
+  ControllerEmu::ControlGroup* ncStick = wm->GetNunchukGroup(NunchukGroup::Stick);
+  const std::string an = "`" + GetQualifiedName(0, RETRO_DEVICE_ANALOG);
+  wmSwing->SetControlExpression(0, "");                       // Up
+  wmSwing->SetControlExpression(1, "");                       // Down
+  wmSwing->SetControlExpression(2, "");                       // Left
+  wmSwing->SetControlExpression(3, "");                       // Right
+  wmSwing->SetControlExpression(4, "A & " + an + ":Y0-`");    // Forward: push
+  wmSwing->SetControlExpression(5, "A & " + an + ":Y0+`");    // Backward: pull
+  wmTilt->SetControlExpression(0, "");
+  wmTilt->SetControlExpression(1, "");
+  wmTilt->SetControlExpression(2, "A & " + an + ":X0-`");     // twist left
+  wmTilt->SetControlExpression(3, "A & " + an + ":X0+`");     // twist right
+  ncStick->SetControlExpression(0, "!A & " + an + ":Y0-`");
+  ncStick->SetControlExpression(1, "!A & " + an + ":Y0+`");
+  ncStick->SetControlExpression(2, "!A & " + an + ":X0-`");
+  ncStick->SetControlExpression(3, "!A & " + an + ":X0+`");
+
   static_cast<ControllerEmu::NumericSetting<bool>*>(wmIR->numeric_settings[4].get())
     ->SetValue(false);  // Relative input
   static_cast<ControllerEmu::NumericSetting<bool>*>(wmIR->numeric_settings[5].get())
@@ -947,7 +965,7 @@ static void UpdateMP3Controls()
   in.move_y = axis(RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_Y);
   in.visor = {button(RETRO_DEVICE_ID_JOYPAD_UP), button(RETRO_DEVICE_ID_JOYPAD_RIGHT),
               button(RETRO_DEVICE_ID_JOYPAD_LEFT), button(RETRO_DEVICE_ID_JOYPAD_DOWN)};
-  in.recentre = button(RETRO_DEVICE_ID_JOYPAD_A);
+  in.recentre = false;  // A is the motion button
   in.lasso = button(RETRO_DEVICE_ID_JOYPAD_R3);
   MP3Controls::SetInput(in);
 }
