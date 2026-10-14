@@ -1895,6 +1895,22 @@ static struct retro_core_option_v2_definition option_defs[] = {
       { "enabled", nullptr },
       { nullptr, nullptr }
     },
+  {
+    Libretro::Options::wiimote::NUNCHUK_SWING_BUTTON,
+    "Wiimote Swing > Nunchuk Swing Button",
+    "Nunchuk Swing Button",
+    "While held, a right thumbstick flick swings the Nunchuk together with the Wiimote: a spin attack (left/right) or vertical spin (up/down) in Skyward Sword. Its other default binding is removed.",
+    nullptr,
+    CATEGORY_WIIMOTE,
+    {
+      { "Disabled", nullptr },
+      { "L3", nullptr }, { "R3", nullptr }, { "L", "L1" }, { "R", "R1" },
+      { "L2", nullptr }, { "R2", nullptr },
+      { "Up", "D-pad Up" }, { "Down", "D-pad Down" }, { "Left", "D-pad Left" }, { "Right", "D-pad Right" },
+      { nullptr, nullptr }
+    },
+    "Disabled"
+  },
     "disabled"
   },
 

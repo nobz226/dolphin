@@ -1163,6 +1163,17 @@ void UpdateWiimoteMappings(const WiimoteUpdateFlags& f, unsigned port, unsigned 
           for (int i = 0; i < 3; i++)
             wmShake->SetControlExpression(i, shakeExpr);
 
+          const std::string ncSwingBtn = Libretro::Options::GetCached<std::string>(
+            Libretro::Options::wiimote::NUNCHUK_SWING_BUTTON, MODIFIER_DISABLED_CONTROL);
+          const bool ncSwingOn = !ncSwingBtn.empty() && ncSwingBtn != MODIFIER_DISABLED_CONTROL;
+          if (wiimote_base_device(device) == RETRO_DEVICE_WIIMOTE_NC)
+          {
+            ControllerEmu::ControlGroup* ncSwing = wm->GetNunchukGroup(WiimoteEmu::NunchukGroup::Swing);
+            const char* axes[] = {":Y1-`", ":Y1+`", ":X1-`", ":X1+`"};  // Up, Down, Left, Right
+            for (int i = 0; i < 4; i++)
+              ncSwing->SetControlExpression(i, ncSwingOn ? notTilt(ncSwingBtn + " & `" + devAnalog + axes[i]) : "");
+          }
+
           if (tiltOn)
           {
             ControllerEmu::ControlGroup* wmTilt = wm->GetWiimoteGroup(WiimoteEmu::WiimoteGroup::Tilt);
@@ -1174,7 +1185,7 @@ void UpdateWiimoteMappings(const WiimoteUpdateFlags& f, unsigned port, unsigned 
 
           const auto used = [&](const std::string& b) {
             return (fwdOn && fwdBtn == b) || (shakeOn && shakeBtn == b && b != "R2") ||
-                   (tiltOn && tiltBtn == b);
+                   (tiltOn && tiltBtn == b) || (ncSwingOn && ncSwingBtn == b);
           };
           ControllerEmu::ControlGroup* wmButtons = wm->GetWiimoteGroup(WiimoteEmu::WiimoteGroup::Buttons);
           ControllerEmu::ControlGroup* wmDPad = wm->GetWiimoteGroup(WiimoteEmu::WiimoteGroup::DPad);

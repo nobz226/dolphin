@@ -397,7 +397,8 @@ void retro_run(void)
                           Libretro::Options::IsUpdated(Libretro::Options::wiimote::SWING_FORWARD_BUTTON) ||
                           Libretro::Options::IsUpdated(Libretro::Options::wiimote::WIIMOTE_SHAKE_BUTTON) ||
                           Libretro::Options::IsUpdated(Libretro::Options::wiimote::TILT_MODIFIER) ||
-                          Libretro::Options::IsUpdated(Libretro::Options::wiimote::TILT_TOGGLE);
+                          Libretro::Options::IsUpdated(Libretro::Options::wiimote::TILT_TOGGLE) ||
+                          Libretro::Options::IsUpdated(Libretro::Options::wiimote::NUNCHUK_SWING_BUTTON);
     flags.swingAngle = Libretro::Options::IsUpdated(Libretro::Options::wiimote::SWING_ANGLE) ||
                        Libretro::Options::IsUpdated(Libretro::Options::wiimote::SWING_DEADZONE) ||
                        Libretro::Options::IsUpdated(Libretro::Options::wiimote::SWING_SPEED) ||
