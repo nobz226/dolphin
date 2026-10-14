@@ -1134,6 +1134,13 @@ void UpdateWiimoteMappings(const WiimoteUpdateFlags& f, unsigned port, unsigned 
           wmSwing->SetControlExpression(2, lock(wrap(swingModifier, "`" + devAnalog + ":X1-`")));  // Left
           wmSwing->SetControlExpression(3, lock(wrap(swingModifier, "`" + devAnalog + ":X1+`")));  // Right
         }
+        else
+        {
+          wmSwing->SetControlExpression(0, "");
+          wmSwing->SetControlExpression(1, "");
+          wmSwing->SetControlExpression(2, "");
+          wmSwing->SetControlExpression(3, "");
+        }
 
         // Thrust, Wiimote shake and tilt mode buttons. A button given one of these
         // jobs loses its default binding (Home on R3, a D-pad direction).
@@ -1175,13 +1182,6 @@ void UpdateWiimoteMappings(const WiimoteUpdateFlags& f, unsigned port, unsigned 
           const char* dirs[] = {"Up", "Down", "Left", "Right"};
           for (int i = 0; i < 4; i++)
             wmDPad->SetControlExpression(i, used(dirs[i]) ? "" : dirs[i]);
-        }
-        else
-        {
-          wmSwing->SetControlExpression(0, "");
-          wmSwing->SetControlExpression(1, "");
-          wmSwing->SetControlExpression(2, "");
-          wmSwing->SetControlExpression(3, "");
         }
       }
       else
