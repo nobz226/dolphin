@@ -314,6 +314,7 @@ namespace wiimote {
   constexpr const char MP3_TURN_SPEED[] = "dolphin_mp3_turn_speed";
   constexpr const char MP3_INVERT_Y[] = "dolphin_mp3_invert_y";
   constexpr const char MP3_AIM_CURVE[] = "dolphin_mp3_aim_curve";
+  constexpr const char MP3_WEAPON_SWAY[] = "dolphin_mp3_weapon_sway";
 }  // namespace wiimote
 
 // ======================================================

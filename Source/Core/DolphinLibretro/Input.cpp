@@ -931,6 +931,7 @@ static void UpdateMP3Controls()
   settings.invert_y = Libretro::Options::GetCached<bool>(Libretro::Options::wiimote::MP3_INVERT_Y);
   settings.smooth = Libretro::Options::GetCached<std::string>(
     Libretro::Options::wiimote::MP3_AIM_CURVE, "smooth") != "linear";
+  settings.weapon_sway = Libretro::Options::GetCached<bool>(Libretro::Options::wiimote::MP3_WEAPON_SWAY);
   MP3Controls::SetSettings(settings);
   if (!settings.enabled || !input_cb)
     return;

@@ -1877,6 +1877,20 @@ static struct retro_core_option_v2_definition option_defs[] = {
     },
     "smooth"
   },
+  {
+    Libretro::Options::wiimote::MP3_WEAPON_SWAY,
+    "Wiimote > Metroid Prime 3 Weapon Sway",
+    "Metroid Prime 3 Weapon Sway",
+    "Let the arm cannon trail and swing as you turn, the way the game moves it. Off keeps it fixed to the view, as PrimeHack does.",
+    nullptr,
+    CATEGORY_WIIMOTE,
+    {
+      { "disabled", nullptr },
+      { "enabled",  nullptr },
+      { nullptr, nullptr }
+    },
+    "disabled"
+  },
 
 #if defined(HAS_OPENGL) && defined(__WEBOS__)
   {
