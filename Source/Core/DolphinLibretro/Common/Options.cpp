@@ -1774,6 +1774,8 @@ static struct retro_core_option_v2_definition option_defs[] = {
       { "180", nullptr },
       { nullptr, nullptr }
     },
+    "90"
+  },
   {
     Libretro::Options::wiimote::SWING_LOCK,
     "Wiimote Swing > Swing Lock Button",
@@ -1788,8 +1790,6 @@ static struct retro_core_option_v2_definition option_defs[] = {
       { nullptr, nullptr }
     },
     "Disabled"
-  },
-    "90"
   },
 
   // ========== RA only ==========
