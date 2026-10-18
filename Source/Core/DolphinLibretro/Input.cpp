@@ -28,6 +28,7 @@
 #include "Core/HW/SI/SI.h"
 #include "Core/HW/SI/SI_Device.h"
 #include "Core/MP3Controls.h"
+#include "Core/PrimeGCControls.h"
 #include "Core/IOS/USB/Bluetooth/BTReal.h"
 #include "Core/Host.h"
 #include "Core/System.h"
@@ -139,6 +140,33 @@ static struct retro_input_descriptor descGC[] = {
     "C Buttons X"},
     {0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_Y,
     "C Buttons Y"},
+    {0},
+};
+
+// Metroid Prime 1 & 2 Controller Aiming (dolphin_prime_gc_controls)
+static struct retro_input_descriptor descGCPrime[] = {
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT, "Visor (Left)"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP, "Visor (Up)"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN, "Visor (Down)"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "Visor (Right)"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A, "Fire (A)"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B, "Jump (B)"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X, "Morph Ball (X)"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y, "Missile (Y)"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2, "Lock-On / Scan (L)"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2, "R"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R, "Map (Z)"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L, "Beams (hold + right stick)"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R3, "Level View"},
+    {0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START, "Start"},
+    {0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X,
+    "Strafe"},
+    {0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_Y,
+    "Move"},
+    {0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X,
+    "Turn"},
+    {0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_Y,
+    "Look Up/Down"},
     {0},
 };
 
@@ -740,6 +768,7 @@ void Shutdown()
   }
 
   MP3Controls::Shutdown();
+  PrimeGCControls::Shutdown();
   Keyboard::Shutdown();
   Pad::Shutdown();
   g_controller_interface.Shutdown();
@@ -940,6 +969,58 @@ static void ApplyMP3Mapping(WiimoteEmu::Wiimote* wm)
     ->SetValue(false);  // Auto hide
 }
 
+// Metroid Prime 1 & 2 Controller Aiming: on for port 1 on the GameCube
+static bool PrimeGCControlsOn(unsigned port)
+{
+  return port == 0 && !Core::System::GetInstance().IsWii() &&
+         Libretro::Options::GetCached<bool>(Libretro::Options::sysconf_gc::PRIME_GC_CONTROLS);
+}
+
+// The right stick turns Samus (Core/PrimeGCControls), so the C-stick (beams) only
+// follows it while L1 is held, and R3 levels the view instead of half-pressing R.
+static void ApplyPrimeGCMapping(GCPad* gcPad, const std::string& devAnalog)
+{
+  ControllerEmu::ControlGroup* gcCStick = gcPad->GetGroup(PadGroup::CStick);
+  ControllerEmu::ControlGroup* gcTriggers = gcPad->GetGroup(PadGroup::Triggers);
+  gcCStick->SetControlExpression(0, "L & `" + devAnalog + ":Y1-`");
+  gcCStick->SetControlExpression(1, "L & `" + devAnalog + ":Y1+`");
+  gcCStick->SetControlExpression(2, "L & `" + devAnalog + ":X1-`");
+  gcCStick->SetControlExpression(3, "L & `" + devAnalog + ":X1+`");
+  gcTriggers->SetControlExpression(3, "`" + devAnalog + ":Trigger1+`");
+}
+
+static void UpdatePrimeGCControls()
+{
+  PrimeGCControls::Settings settings;
+  settings.enabled = PrimeGCControlsOn(0);
+  settings.turn_speed = static_cast<float>(
+    Libretro::Options::GetCached<int>(Libretro::Options::sysconf_gc::PRIME_GC_TURN_SPEED, 15));
+  settings.invert_y =
+    Libretro::Options::GetCached<bool>(Libretro::Options::sysconf_gc::PRIME_GC_INVERT_Y);
+  settings.smooth = Libretro::Options::GetCached<std::string>(
+    Libretro::Options::sysconf_gc::PRIME_GC_AIM_CURVE, "smooth") != "linear";
+  settings.crosshair =
+    Libretro::Options::GetCached<bool>(Libretro::Options::sysconf_gc::PRIME_GC_CROSSHAIR, true);
+  PrimeGCControls::SetSettings(settings);
+  if (!settings.enabled || !input_cb)
+    return;
+
+  const auto axis = [](unsigned index, unsigned id) {
+    return input_cb(0, RETRO_DEVICE_ANALOG, index, id) / 32768.f;
+  };
+  const auto button = [](unsigned id) { return input_cb(0, RETRO_DEVICE_JOYPAD, 0, id) != 0; };
+
+  PrimeGCControls::Input in;
+  // While L1 picks a beam the stick is the C-stick, not the camera
+  if (!button(RETRO_DEVICE_ID_JOYPAD_L))
+  {
+    in.look_x = axis(RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X);
+    in.look_y = axis(RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_Y);
+  }
+  in.recentre = button(RETRO_DEVICE_ID_JOYPAD_R3);
+  PrimeGCControls::SetInput(in);
+}
+
 static void UpdateMP3Controls()
 {
   MP3Controls::Settings settings;
@@ -992,6 +1073,8 @@ void Update()
 
   if (Core::System::GetInstance().IsWii())
     UpdateMP3Controls();
+  else
+    UpdatePrimeGCControls();
 
   auto& system = Core::System::GetInstance();
   bool gcMicEnable = Libretro::Options::GetCached<bool>(Libretro::Options::sysconf_gc::ENABLE_GAMECUBE_MIC);
@@ -1353,6 +1436,14 @@ void UpdateGCMappings(const WiimoteUpdateFlags& f, unsigned port, unsigned devic
   if (system.IsWii())
     return;
 
+  if (f.primeGCControls && port == 0)
+  {
+    // Rebuild port 1's layout with or without the Metroid Prime changes
+    retro_set_controller_port_device_gc(port, input_types[port]);
+    UpdateInputDescriptors();
+    return;
+  }
+
   if (f.gcMicBtn && Libretro::Input::g_has_microphone_support)
   {
     GCPad* gcPad = (GCPad*)Pad::GetConfig()->GetController(port > 3 ? port - 4 : port);
@@ -1463,7 +1554,8 @@ void UpdateInputDescriptors()
     default:
       if (!system.IsWii() || i > 3)
       {
-        desc = Libretro::Input::descGC;
+        desc = (i == 0 && Libretro::Input::PrimeGCControlsOn(0)) ? Libretro::Input::descGCPrime :
+                                                                   Libretro::Input::descGC;
       }
       else
       {
@@ -1665,6 +1757,9 @@ void retro_set_controller_port_device_gc(unsigned port, unsigned device)
     gcRumble->SetControlExpression(0, "Rumble");
   static_cast<ControllerEmu::NumericSetting<bool>*>(gcOptions->numeric_settings[0].get())
     ->SetValue(true); // Always Connected
+
+  if (Libretro::Input::PrimeGCControlsOn(port))
+    Libretro::Input::ApplyPrimeGCMapping(gcPad, devAnalog);
 
   gcPad->UpdateReferences(g_controller_interface);
 

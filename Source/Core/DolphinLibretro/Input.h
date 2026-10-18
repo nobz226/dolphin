@@ -22,12 +22,13 @@ struct WiimoteUpdateFlags
     bool gcMicBtn      = false;
     bool irPassthrough = false;
     bool mp3Controls   = false;
+    bool primeGCControls = false;
 
     bool any() const {
         return irMode || irOffset || irYaw || irPitch ||
                irDeadzone || irModifier || swingModifier ||
                swingAngle || sideways || rumble || gcMicBtn || irPassthrough ||
-               mp3Controls;
+               mp3Controls || primeGCControls;
     }
 };
 

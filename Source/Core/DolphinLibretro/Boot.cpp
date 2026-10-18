@@ -316,6 +316,11 @@ bool retro_load_game(const struct retro_game_info* game)
     // shaders compile. Their output is unaffected, so they stay in the log too.
     if (std::string_view(text).find("\n  Condition: ") != std::string_view::npos)
       return true;
+    // Once a game is running, warnings and errors stay in the log too: emulation
+    // carries on past them (e.g. Metroid Prime 3's "GetRemainingIndices would
+    // overflow"), and repeated ones would cover the picture.
+    if (Core::IsRunningOrStarting(Core::System::GetInstance()))
+      return true;
     Libretro::Log::LogFrontEnd(style, caption, text, 2000);
     return true; // Always "continue"
   });

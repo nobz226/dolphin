@@ -192,6 +192,13 @@ namespace sysconf_gc {
   constexpr const char SP1_DEVICE[] = "dolphin_gc_sp1";
   constexpr const char ENABLE_GAMECUBE_MIC[] = "dolphin_enable_gamecube_mic";
   constexpr const char HOTKEY_ACTIVATE_MICROPHONE[] = "dolphin_hotkey_activate_microphone";
+
+  // Metroid Prime 1 & 2 (GameCube) controller aiming (Core/PrimeGCControls)
+  constexpr const char PRIME_GC_CONTROLS[] = "dolphin_prime_gc_controls";
+  constexpr const char PRIME_GC_TURN_SPEED[] = "dolphin_prime_gc_turn_speed";
+  constexpr const char PRIME_GC_INVERT_Y[] = "dolphin_prime_gc_invert_y";
+  constexpr const char PRIME_GC_AIM_CURVE[] = "dolphin_prime_gc_aim_curve";
+  constexpr const char PRIME_GC_CROSSHAIR[] = "dolphin_prime_gc_crosshair";
 }
 
 // ======================================================

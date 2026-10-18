@@ -512,6 +512,9 @@ add_library(core
   MP3Controls.h
   PatchEngine.cpp
   PatchEngine.h
+  PrimeGCControls.cpp
+  PrimeGCControls.h
+  PrimeGCStrafePatches.h
   PowerPC/BreakPoints.cpp
   PowerPC/BreakPoints.h
   PowerPC/CachedInterpreter/CachedInterpreter_Disassembler.cpp

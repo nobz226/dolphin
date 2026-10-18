@@ -1988,6 +1988,77 @@ static struct retro_core_option_v2_definition option_defs[] = {
     "Disabled"
   },
   {
+    Libretro::Options::sysconf_gc::PRIME_GC_CONTROLS,
+    "System Configuration (GC) > Metroid Prime 1 & 2 Controller Aiming",
+    "Metroid Prime 1 & 2 Controller Aiming",
+    "Metroid Prime and Metroid Prime 2: Echoes (GameCube, USA) only: the right stick turns the camera directly, like a modern shooter, and the left stick moves and strafes. Hold L1 and use the right stick to switch beams (the C-stick). R3 levels the view. Every other button keeps the game's layout. Lock-on, grapple, morph ball and menus stay the game's. Based on PrimeHack.",
+    nullptr,
+    CATEGORY_GC,
+    {
+      { "disabled", nullptr },
+      { "enabled",  nullptr },
+      { nullptr, nullptr }
+    },
+    "disabled"
+  },
+  {
+    Libretro::Options::sysconf_gc::PRIME_GC_TURN_SPEED,
+    "System Configuration (GC) > Metroid Prime 1 & 2 Turn Speed",
+    "Metroid Prime 1 & 2 Turn Speed",
+    "How fast the right stick turns the camera at full tilt. 15 is PrimeHack's default, about 190 degrees a second.",
+    nullptr,
+    CATEGORY_GC,
+    {
+      { "5", nullptr }, { "8", nullptr }, { "10", nullptr }, { "12", nullptr },
+      { "15", "15 (Default)" }, { "18", nullptr }, { "20", nullptr }, { "25", nullptr },
+      { "30", nullptr }, { "35", nullptr }, { "40", nullptr },
+      { nullptr, nullptr }
+    },
+    "15"
+  },
+  {
+    Libretro::Options::sysconf_gc::PRIME_GC_INVERT_Y,
+    "System Configuration (GC) > Metroid Prime 1 & 2 Invert Look",
+    "Metroid Prime 1 & 2 Invert Look",
+    "Push up to look down.",
+    nullptr,
+    CATEGORY_GC,
+    {
+      { "disabled", nullptr },
+      { "enabled",  nullptr },
+      { nullptr, nullptr }
+    },
+    "disabled"
+  },
+  {
+    Libretro::Options::sysconf_gc::PRIME_GC_AIM_CURVE,
+    "System Configuration (GC) > Metroid Prime 1 & 2 Aim Response",
+    "Metroid Prime 1 & 2 Aim Response",
+    "Smooth makes small stick movements finer for precise aiming and still turns at full speed at full tilt. Linear is PrimeHack's response.",
+    nullptr,
+    CATEGORY_GC,
+    {
+      { "smooth", "Smooth" },
+      { "linear", "Linear" },
+      { nullptr, nullptr }
+    },
+    "smooth"
+  },
+  {
+    Libretro::Options::sysconf_gc::PRIME_GC_CROSSHAIR,
+    "System Configuration (GC) > Metroid Prime 1 & 2 Crosshair",
+    "Metroid Prime 1 & 2 Crosshair",
+    "Always show the game's aiming reticle in the middle of the screen, as PrimeHack can. Off shows it only while R is held, as the game does.",
+    nullptr,
+    CATEGORY_GC,
+    {
+      { "enabled",  nullptr },
+      { "disabled", nullptr },
+      { nullptr, nullptr }
+    },
+    "enabled"
+  },
+  {
     Libretro::Options::wiimote::MP3_CONTROLS,
     "Wiimote > Metroid Prime 3 Controller Aiming",
     "Metroid Prime 3 Controller Aiming",

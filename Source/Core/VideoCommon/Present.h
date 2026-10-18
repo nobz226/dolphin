@@ -17,6 +17,7 @@
 #include <tuple>
 
 class AbstractTexture;
+class AbstractFramebuffer;
 struct SurfaceInfo;
 enum class DolphinKey;
 
@@ -156,9 +157,16 @@ private:
   RcTcacheEntry m_xfb_entry;
   // Internal resolution multiplier scaled XFB size
   MathUtil::Rectangle<int> m_xfb_rect{0, 0, MAX_XFB_WIDTH, MAX_XFB_HEIGHT};
-  // Field-drawn video fix: the frame is the second (lower) field shown on its own,
-  // drawn half a field line lower so the two fields line up instead of bobbing.
-  bool m_lower_field_alone = false;
+  // Field-drawn video fix: one field of the frame shown on its own. It's taken from the
+  // full-frame XFB copy (m_xfb_entry, m_xfb_rect) line by line into m_field_texture, then
+  // stretched to frame height in m_field_frame, the lower field a frame line lower.
+  bool ExtractField();
+  bool m_field_alone = false;
+  u32 m_field_parity = 0;  // 1: the lower field (odd frame lines)
+  u32 m_field_lines = 0;
+  std::unique_ptr<AbstractTexture> m_field_texture;
+  std::unique_ptr<AbstractTexture> m_field_frame;
+  std::unique_ptr<AbstractFramebuffer> m_field_frame_fb;
 
   // Tracking of XFB textures so we don't render duplicate frames.
   u64 m_last_xfb_id = std::numeric_limits<u64>::max();

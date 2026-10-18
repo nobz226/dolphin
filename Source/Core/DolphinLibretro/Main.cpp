@@ -413,6 +413,8 @@ void retro_run(void)
 
   flags.rumble = Libretro::Options::IsUpdated(Libretro::Options::sysconf::ENABLE_RUMBLE);
   flags.gcMicBtn = Libretro::Options::IsUpdated(Libretro::Options::sysconf_gc::HOTKEY_ACTIVATE_MICROPHONE);
+  if (!system.IsWii())
+    flags.primeGCControls = Libretro::Options::IsUpdated(Libretro::Options::sysconf_gc::PRIME_GC_CONTROLS);
 
   if (flags.any())
     Libretro::Input::ResetControllers(flags);

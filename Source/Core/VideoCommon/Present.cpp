@@ -162,11 +162,44 @@ bool Presenter::FetchXFB(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_heigh
   }
   else
   {
-    m_xfb_entry =
-        g_texture_cache->GetXFBTexture(xfb_addr, fb_width, fb_height, fb_stride, &m_xfb_rect);
+    // A field read on its own has a stride of two lines. When the game drew the frame
+    // it belongs to as one copy, that copy is fetched whole (the GPU's own copy, so
+    // nothing waits on guest RAM) and the field's lines are picked out at present time.
+    const u32 last_parity = m_field_parity;
+    const bool was_field = m_field_alone;
+    m_field_alone = false;
+    u32 fetch_addr = xfb_addr, fetch_stride = fb_stride, fetch_height = fb_height;
+    if (Config::Get(Config::GFX_HACK_FIELD_DRAWN_VIDEO) && fb_stride == fb_width * 4)
+    {
+      const u32 line_bytes = fb_width * 2;
+      if (XFBWasSingleFullCopy(xfb_addr, fb_height * 2))
+      {
+        m_field_alone = true;
+        m_field_parity = 0;
+      }
+      else if (XFBWasSingleFullCopy(xfb_addr - line_bytes, fb_height * 2))
+      {
+        m_field_alone = true;
+        m_field_parity = 1;
+        fetch_addr = xfb_addr - line_bytes;
+      }
+      if (m_field_alone)
+      {
+        fetch_stride = fb_stride / 2;
+        fetch_height = fb_height * 2;
+        m_field_lines = fb_height;
+      }
+    }
+
+    m_xfb_entry = g_texture_cache->GetXFBTexture(fetch_addr, fb_width, fetch_height,
+                                                 fetch_stride, &m_xfb_rect);
     m_last_xfb_id = m_xfb_entry->id;
 
     m_xfb_entry->AcquireContentLock();
+
+    // The other field of the same copy is a new picture, not a duplicate
+    if (m_field_alone && (!was_field || last_parity != m_field_parity))
+      old_xfb_id = std::numeric_limits<u64>::max() - 1;
   }
   m_last_xfb_addr = xfb_addr;
   m_last_xfb_ticks = ticks;
@@ -181,12 +214,6 @@ void Presenter::ViSwap(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_height,
                        TimePoint presentation_time)
 {
   bool is_duplicate = FetchXFB(xfb_addr, fb_width, fb_stride, fb_height, ticks);
-
-  // A field read on its own has a stride of two lines. It is the lower field
-  // when it starts one line into a buffer the game drew as one full frame.
-  m_lower_field_alone = Config::Get(Config::GFX_HACK_FIELD_DRAWN_VIDEO) &&
-                        fb_stride == fb_width * 4 &&
-                        XFBWasSingleFullCopy(xfb_addr - fb_width * 2, fb_height * 2);
 
   PresentInfo present_info{
       .present_count = m_present_count++,
@@ -907,6 +934,71 @@ std::tuple<int, int> Presenter::CalculateOutputDimensions(int width, int height,
   return std::make_tuple(width, height);
 }
 
+bool Presenter::ExtractField()
+{
+  const AbstractTexture* frame = m_xfb_entry->texture.get();
+  const MathUtil::Rectangle<int>& rect = m_xfb_rect;
+  const int lines = static_cast<int>(m_field_lines);
+  if (lines == 0 || rect.GetHeight() <= 0 || rect.GetHeight() % (lines * 2) != 0 ||
+      frame->GetFormat() != AbstractTextureFormat::RGBA8)
+  {
+    return false;
+  }
+  // Texture rows per frame line (the internal resolution)
+  const int rows = rect.GetHeight() / (lines * 2);
+  const int width = rect.GetWidth();
+  const u32 layers = frame->GetLayers();
+
+  // The field's own lines, packed together
+  if (!m_field_texture || m_field_texture->GetWidth() != static_cast<u32>(width) ||
+      m_field_texture->GetHeight() != static_cast<u32>(lines * rows) ||
+      m_field_texture->GetLayers() != layers)
+  {
+    m_field_texture = g_gfx->CreateTexture(
+        TextureConfig(width, lines * rows, 1, layers, 1, AbstractTextureFormat::RGBA8, 0,
+                      AbstractTextureType::Texture_2DArray),
+        "Field-drawn video field");
+    if (!m_field_texture)
+      return false;
+  }
+  // ...stretched to the frame's height, one frame line taller so the lower field fits
+  const u32 frame_height = static_cast<u32>((lines * 2 + 1) * rows);
+  if (!m_field_frame || m_field_frame->GetWidth() != static_cast<u32>(width) ||
+      m_field_frame->GetHeight() != frame_height || m_field_frame->GetLayers() != layers)
+  {
+    m_field_frame_fb.reset();
+    m_field_frame = g_gfx->CreateTexture(
+        TextureConfig(width, frame_height, 1, layers, 1, AbstractTextureFormat::RGBA8,
+                      AbstractTextureFlag_RenderTarget, AbstractTextureType::Texture_2DArray),
+        "Field-drawn video frame");
+    if (!m_field_frame)
+      return false;
+    m_field_frame_fb = g_gfx->CreateFramebuffer(m_field_frame.get(), nullptr);
+    if (!m_field_frame_fb)
+      return false;
+  }
+
+  for (u32 layer = 0; layer < layers; layer++)
+  {
+    for (int line = 0; line < lines; line++)
+    {
+      const int src_top = rect.top + (line * 2 + static_cast<int>(m_field_parity)) * rows;
+      m_field_texture->CopyRectangleFromTexture(
+          frame, {rect.left, src_top, rect.right, src_top + rows}, layer, 0,
+          {0, line * rows, width, line * rows + rows}, layer, 0);
+    }
+  }
+  m_field_texture->FinishedRendering();
+
+  // The lower field lands one frame line lower than the upper one, so both line up
+  // instead of bobbing; the lines between are interpolated.
+  const int top = m_field_parity == 1 ? rows : 0;
+  g_gfx->SetAndClearFramebuffer(m_field_frame_fb.get(), {{0.0f, 0.0f, 0.0f, 1.0f}});
+  g_gfx->ScaleTexture(m_field_frame_fb.get(), {0, top, width, top + lines * 2 * rows},
+                      m_field_texture.get(), {0, 0, width, lines * rows});
+  return true;
+}
+
 void Presenter::RenderXFBToScreen(const MathUtil::Rectangle<int>& target_rc,
                                   const AbstractTexture* source_texture,
                                   const MathUtil::Rectangle<int>& source_rc)
@@ -969,6 +1061,8 @@ void Presenter::Present(PresentInfo* present_info)
 
   UpdateDrawRectangle();
 
+  const bool field_ready = m_field_alone && m_xfb_entry && ExtractField();
+
   g_gfx->BeginUtilityDrawing();
   const bool backbuffer_bound = g_gfx->BindBackbuffer({{0.0f, 0.0f, 0.0f, 1.0f}});
 
@@ -978,16 +1072,19 @@ void Presenter::Present(PresentInfo* present_info)
     // Adjust the source rectangle instead of using an oversized viewport to render the XFB.
     MathUtil::Rectangle<int> render_target_rc = GetTargetRectangle();
     MathUtil::Rectangle<int> render_source_rc = AdjustForCustomCrop(m_xfb_rect);
-    if (m_lower_field_alone && render_source_rc.GetHeight() > 0)
+    const AbstractTexture* source_texture = m_xfb_entry->texture.get();
+    if (field_ready)
     {
-      const int half_line = static_cast<int>(std::lround(
-          render_target_rc.GetHeight() / (2.0 * render_source_rc.GetHeight())));
-      render_target_rc.top += half_line;
-      render_target_rc.bottom += half_line;
+      // The field frame starts at the texture's top-left
+      render_source_rc.left -= m_xfb_rect.left;
+      render_source_rc.right -= m_xfb_rect.left;
+      render_source_rc.top -= m_xfb_rect.top;
+      render_source_rc.bottom -= m_xfb_rect.top;
+      source_texture = m_field_frame.get();
     }
     AdjustRectanglesToFitBounds(&render_target_rc, &render_source_rc, m_backbuffer_width,
                                 m_backbuffer_height);
-    RenderXFBToScreen(render_target_rc, m_xfb_entry->texture.get(), render_source_rc);
+    RenderXFBToScreen(render_target_rc, source_texture, render_source_rc);
   }
 
   if (m_onscreen_ui)
