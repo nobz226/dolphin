@@ -1,5 +1,12 @@
 # Dolphin - A GameCube and Wii Emulator
 
+> **About this fork (nobz226/dolphin).** The Dolphin libretro core of the [MacOS-ARM-Nobz Edition](https://github.com/nobz226/retroarch-macos-arm-nobz) for Apple Silicon Macs, built from `master`. On top of upstream Dolphin's libretro core it adds:
+> - a **Metal** renderer on the readback path, and asynchronous MoltenVK submits for the Vulkan renderer;
+> - PrimeHack-style controller aiming for **Metroid Prime 1 and 2** (GameCube) and **Metroid Prime 3** (Wii), including lever and rotary-lock puzzles, as core options;
+> - **Swing Lock** and controller options for Skyward Sword, plus a Wiimote IR recenter option;
+> - a movie-only fix for Metroid Prime's field-drawn opening movie;
+> - Dolphin's panic alerts sent to the log while a game runs, and no "not a known good dump" IPL warning.
+
 [Homepage](https://dolphin-emu.org/) | [Project Site](https://github.com/dolphin-emu/dolphin) | [Buildbot](https://dolphin.ci/) | [Forums](https://forums.dolphin-emu.org/) | [Wiki](https://wiki.dolphin-emu.org/) | [GitHub Wiki](https://github.com/dolphin-emu/dolphin/wiki) | [Issue Tracker](https://bugs.dolphin-emu.org/projects/emulator/issues) | [Coding Style](https://github.com/dolphin-emu/dolphin/blob/master/Contributing.md) | [Transifex Page](https://app.transifex.com/dolphinemu/dolphin-emu/dashboard/) | [Analytics](https://mon.dolphin-emu.org/)
 
 Dolphin is an emulator for running GameCube and Wii games on Windows,
