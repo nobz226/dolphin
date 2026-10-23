@@ -2431,10 +2431,7 @@ void TextureCacheBase::CopyRenderTargetToTexture(
               scaleByHalf, linear_filter, y_scale, gamma, clamp_top, clamp_bottom, coefficients);
 
       // We can't defer if there is no VRAM copy (since we need to update the hash).
-      // The field-drawn video fix reads XFB copies from RAM on the CPU thread, so
-      // those (one a frame) are written straight away.
-      if (!copy_to_vram || !g_ActiveConfig.bDeferEFBCopies ||
-          (is_xfb_copy && Config::Get(Config::GFX_HACK_FIELD_DRAWN_VIDEO)))
+      if (!copy_to_vram || !g_ActiveConfig.bDeferEFBCopies)
       {
         // Immediately flush it.
         WriteEFBCopyToRAM(dst, bytes_per_row / sizeof(u32), num_blocks_y, dstStride,

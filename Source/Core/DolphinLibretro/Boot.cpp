@@ -584,10 +584,9 @@ bool retro_load_game(const struct retro_game_info* game)
     Config::SetBase(Config::GFX_HACK_FIELD_DRAWN_VIDEO, field_drawn_video);
     if (field_drawn_video)
     {
-      // A field read on its own needs the XFB in RAM (texture-only XFBs only
-      // serve whole frames), and output at the end of the field so it isn't
-      // read while the game is still copying the next one (a tear line).
-      Config::SetBase(Config::GFX_HACK_SKIP_XFB_COPY_TO_RAM, false);
+      // Output at the end of the field, so a field isn't read while the game is
+      // still copying the next one (a tear line). The fix works from the GPU's
+      // own XFB copies, so they don't have to be written back to RAM.
       Config::SetBase(Config::GFX_HACK_EARLY_XFB_OUTPUT, false);
     }
   }

@@ -803,47 +803,6 @@ void VideoInterfaceManager::LogField(FieldType field, u32 xfb_address) const
                 GetTicksPerOddField());
 }
 
-namespace
-{
-// Field-drawn video fix: whether the two fields of the full frame at `addr` hold
-// different pictures. A game that draws each field as its own frame leaves the
-// other field's lines from an earlier picture, so neighbouring lines differ far
-// more than lines two apart. In a normal progressive frame they are close. Samples
-// the luma (YUYV) of about a thousand pixels.
-bool FieldsHoldDifferentPictures(Memory::MemoryManager& memory, u32 addr, u32 line_bytes,
-                                 u32 lines)
-{
-  if (lines < 16 || line_bytes < 64)
-    return false;
-  const u8* frame = memory.GetPointerForRange(addr, static_cast<size_t>(line_bytes) * lines);
-  if (!frame)
-    return false;
-
-  constexpr u32 kRows = 32;
-  constexpr u32 kColumns = 32;
-  u64 between_fields = 0;  // |line - next line|
-  u64 within_field = 0;    // |line - line two below|
-  for (u32 i = 0; i < kRows; i++)
-  {
-    const u32 row = ((i * (lines - 4) / kRows) & ~1u) + 1;
-    const u8* l0 = frame + row * line_bytes;
-    const u8* l1 = l0 + line_bytes;
-    const u8* l2 = l1 + line_bytes;
-    const u8* l3 = l2 + line_bytes;
-    for (u32 j = 0; j < kColumns; j++)
-    {
-      const u32 x = ((j * line_bytes / kColumns) & ~1u);  // a luma byte
-      between_fields += std::abs(int(l0[x]) - int(l1[x])) + std::abs(int(l1[x]) - int(l2[x]));
-      within_field += std::abs(int(l0[x]) - int(l2[x])) + std::abs(int(l1[x]) - int(l3[x]));
-    }
-  }
-  // Clearly more change between the fields than within one, and enough of it to be
-  // more than noise (a still picture leaves both fields the same and weaves fine).
-  constexpr u64 kSamples = u64{kRows} * kColumns * 2;
-  return between_fields > within_field + within_field / 2 && between_fields > kSamples * 6;
-}
-}  // namespace
-
 void VideoInterfaceManager::OutputField(FieldType field, u64 ticks)
 {
   // Could we fit a second line of data in the stride?
@@ -892,10 +851,10 @@ void VideoInterfaceManager::OutputField(FieldType field, u64 ticks)
 
     // Only frames whose two fields really hold different pictures (the movies);
     // menus and gameplay are drawn whole and keep the full-resolution weave.
-    // A field-drawn frame is still judged so for a few fields after its stale
-    // lines happen to match (a still moment), so the picture doesn't flip.
-    if (frame_addr &&
-        FieldsHoldDifferentPictures(m_system.GetMemory(), frame_addr, line_bytes, frame_lines))
+    // The presenter judges that from the GPU's copy a few frames late (no wait on
+    // the GPU), and a field-drawn frame is still judged so for a few fields after
+    // its stale lines happen to match (a still moment), so the picture doesn't flip.
+    if (frame_addr && XFBFieldsDiffer())
     {
       m_field_drawn_hold = 6;
     }

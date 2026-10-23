@@ -88,6 +88,18 @@ bool XFBWasSingleFullCopy(u32 addr, u32 lines)
   return false;
 }
 
+static std::atomic<bool> s_xfb_fields_differ{false};
+
+void SetXFBFieldsDiffer(bool differ)
+{
+  s_xfb_fields_differ.store(differ, std::memory_order_relaxed);
+}
+
+bool XFBFieldsDiffer()
+{
+  return s_xfb_fields_differ.load(std::memory_order_relaxed);
+}
+
 void BPInit()
 {
   memset(reinterpret_cast<u8*>(&bpmem), 0, sizeof(bpmem));

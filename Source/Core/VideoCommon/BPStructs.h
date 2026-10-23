@@ -12,3 +12,9 @@ void BPReload();
 // last written by one EFB copy covering at least `lines` lines - a game that draws
 // every field as its own full frame, as Metroid Prime's attract movies do.
 bool XFBWasSingleFullCopy(u32 addr, u32 lines);
+
+// Field-drawn video fix: whether the last full-frame XFB copies the presenter checked hold
+// different pictures in their two fields (the movies). Set on the GPU thread from a delayed
+// readback, read by the video interface on the CPU thread.
+void SetXFBFieldsDiffer(bool differ);
+bool XFBFieldsDiffer();

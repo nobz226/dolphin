@@ -6,6 +6,7 @@
 #include "Common/Flag.h"
 #include "Common/MathUtil.h"
 
+#include "VideoCommon/AbstractStagingTexture.h"
 #include "VideoCommon/OnScreenUIKeyMap.h"
 #include "VideoCommon/TextureCacheBase.h"
 #include "VideoCommon/TextureConfig.h"
@@ -167,6 +168,20 @@ private:
   std::unique_ptr<AbstractTexture> m_field_texture;
   std::unique_ptr<AbstractTexture> m_field_frame;
   std::unique_ptr<AbstractFramebuffer> m_field_frame_fb;
+  // Whether the two fields of a full-frame XFB copy hold different pictures. A few sampled
+  // lines of each copy are read back into a ring of staging textures and judged when the
+  // ring comes round again, by which time the GPU has finished them, so nothing waits on it.
+  // The result goes to SetXFBFieldsDiffer() for the video interface.
+  void ProbeFields(u32 frame_lines);
+  struct FieldProbe
+  {
+    std::unique_ptr<AbstractStagingTexture> texture;
+    int rows = 0;  // texture rows per frame line
+    bool pending = false;
+  };
+  std::array<FieldProbe, 3> m_field_probes;
+  u32 m_field_probe_next = 0;
+  u64 m_field_probe_last_id = std::numeric_limits<u64>::max();
 
   // Tracking of XFB textures so we don't render duplicate frames.
   u64 m_last_xfb_id = std::numeric_limits<u64>::max();

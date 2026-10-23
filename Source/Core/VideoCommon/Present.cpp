@@ -197,6 +197,14 @@ bool Presenter::FetchXFB(u32 xfb_addr, u32 fb_width, u32 fb_stride, u32 fb_heigh
 
     m_xfb_entry->AcquireContentLock();
 
+    // A whole frame drawn as one copy may be a field-drawn movie frame; check it.
+    if (Config::Get(Config::GFX_HACK_FIELD_DRAWN_VIDEO) &&
+        (m_field_alone ||
+         (fb_stride == fb_width * 2 && XFBWasSingleFullCopy(fetch_addr, fetch_height))))
+    {
+      ProbeFields(fetch_height);
+    }
+
     // The other field of the same copy is a new picture, not a duplicate
     if (m_field_alone && (!was_field || last_parity != m_field_parity))
       old_xfb_id = std::numeric_limits<u64>::max() - 1;
@@ -997,6 +1005,90 @@ bool Presenter::ExtractField()
   g_gfx->ScaleTexture(m_field_frame_fb.get(), {0, top, width, top + lines * 2 * rows},
                       m_field_texture.get(), {0, 0, width, lines * rows});
   return true;
+}
+
+void Presenter::ProbeFields(u32 frame_lines)
+{
+  if (m_xfb_entry->id == m_field_probe_last_id)
+    return;
+  m_field_probe_last_id = m_xfb_entry->id;
+
+  // Sampled like the picture was in guest RAM: 32 groups of 4 frame lines, 32 columns.
+  constexpr int kRows = 32;
+  constexpr int kColumns = 32;
+  const AbstractTexture* frame = m_xfb_entry->texture.get();
+  const MathUtil::Rectangle<int>& rect = m_xfb_rect;
+  const int lines = static_cast<int>(frame_lines);
+  if (lines < 16 || rect.GetWidth() < kColumns || rect.GetHeight() % lines != 0 ||
+      frame->GetFormat() != AbstractTextureFormat::RGBA8)
+  {
+    return;
+  }
+  const int rows = rect.GetHeight() / lines;
+  const int width = rect.GetWidth();
+  const auto group_line = [&](int i) { return ((i * (lines - 4) / kRows) & ~1) + 1; };
+
+  FieldProbe& probe = m_field_probes[m_field_probe_next];
+  m_field_probe_next = (m_field_probe_next + 1) % m_field_probes.size();
+
+  // The copy queued when the ring last came round: judge it.
+  if (probe.pending)
+  {
+    probe.pending = false;
+    probe.texture->Flush();
+    if (probe.texture->Map())
+    {
+      const int pr = probe.rows;
+      const u8* data = reinterpret_cast<const u8*>(probe.texture->GetMappedPointer());
+      const size_t stride = probe.texture->GetMappedStride();
+      const int probe_width = static_cast<int>(probe.texture->GetWidth());
+      const auto luma = [&](int line, int x) {
+        const u8* p = data + static_cast<size_t>(line * pr + pr / 2) * stride + x * 4;
+        return (77 * p[0] + 150 * p[1] + 29 * p[2]) >> 8;
+      };
+      u64 between_fields = 0;  // |line - next line|
+      u64 within_field = 0;    // |line - line two below|
+      for (int i = 0; i < kRows; i++)
+      {
+        const int l = i * 4;
+        for (int j = 0; j < kColumns; j++)
+        {
+          const int x = j * probe_width / kColumns;
+          const int y0 = luma(l, x), y1 = luma(l + 1, x), y2 = luma(l + 2, x),
+                    y3 = luma(l + 3, x);
+          between_fields += std::abs(y0 - y1) + std::abs(y1 - y2);
+          within_field += std::abs(y0 - y2) + std::abs(y1 - y3);
+        }
+      }
+      // Clearly more change between the fields than within one, and enough of it to be
+      // more than noise (a still picture leaves both fields the same and weaves fine).
+      constexpr u64 kSamples = u64{kRows} * kColumns * 2;
+      SetXFBFieldsDiffer(between_fields > within_field + within_field / 2 &&
+                         between_fields > kSamples * 6);
+      probe.texture->Unmap();
+    }
+  }
+
+  // Queue this frame's sampled lines.
+  const u32 probe_height = static_cast<u32>(kRows * 4 * rows);
+  if (!probe.texture || probe.texture->GetWidth() != static_cast<u32>(width) ||
+      probe.texture->GetHeight() != probe_height)
+  {
+    probe.texture = g_gfx->CreateStagingTexture(
+        StagingTextureType::Readback,
+        TextureConfig(width, probe_height, 1, 1, 1, AbstractTextureFormat::RGBA8, 0,
+                      AbstractTextureType::Texture_2DArray));
+    if (!probe.texture)
+      return;
+  }
+  for (int i = 0; i < kRows; i++)
+  {
+    const int src_top = rect.top + group_line(i) * rows;
+    probe.texture->CopyFromTexture(frame, {rect.left, src_top, rect.right, src_top + 4 * rows}, 0,
+                                   0, {0, i * 4 * rows, width, (i + 1) * 4 * rows});
+  }
+  probe.rows = rows;
+  probe.pending = true;
 }
 
 void Presenter::RenderXFBToScreen(const MathUtil::Rectangle<int>& target_rc,
